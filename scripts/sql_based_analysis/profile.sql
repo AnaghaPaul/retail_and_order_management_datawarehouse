@@ -5,9 +5,11 @@
 -- ------------------------------------------------------------------------------------------------------------------------------------
 -- The data is stored in the DataWarehouse database which follows a medallion architecture.
 /*
-The cleaned and analysis ready data is stored in the gold layer of the databse, as 6 objects or views in which 3 are roleplaying date dimensions.
+The gold layer of the data warehouse contains analytics ready data in star schema dimensional model.
+The dimensions include
 - dim.customers
 - dim.products
+- dim_date -------> The role playing dimension has 3 views:
 - dim_order_date
 - dim_shipping_date
 - dim_due_date
@@ -21,30 +23,31 @@ ORDER BY TABLE_SCHEMA;
 Result :
 -- ----------------------------------------------------------------------------------------------------------------------------------------
 
-TABLE_CATALOG	TABLE_SCHEMA	TABLE_NAME			TABLE_TYPE
-DataWarehouse	bronze			crm_prd_info		BASE TABLE
-DataWarehouse	bronze			erp_cust_az12		BASE TABLE
-DataWarehouse	bronze			erp_loc_a101		BASE TABLE
-DataWarehouse	bronze			erp_px_cat_g1v2		BASE TABLE
-DataWarehouse	bronze			crm_cust_info		BASE TABLE
-DataWarehouse	bronze			crm_sales_details	BASE TABLE
-DataWarehouse	gold			dim_customers		VIEW
-DataWarehouse	gold			dim_products		VIEW
-DataWarehouse	gold			dim_order_date		VIEW
-DataWarehouse	gold			dim_shipping_date	VIEW
-DataWarehouse	gold			dim_due_date		VIEW
-DataWarehouse	gold			fact_sales			VIEW
-DataWarehouse	silver			crm_prd_info		BASE TABLE
-DataWarehouse	silver			crm_sales_details	BASE TABLE
-DataWarehouse	silver			erp_cust_az12		BASE TABLE
-DataWarehouse	silver			erp_loc_a101		BASE TABLE
-DataWarehouse	silver			erp_px_cat_g1v2		BASE TABLE
-DataWarehouse	silver			dwh_dim_date		BASE TABLE
-DataWarehouse	silver			crm_cust_info		BASE TABLE*/
+TABLE_CATALOG			TABLE_SCHEMA	TABLE_NAME			TABLE_TYPE
+DataWarehouse			bronze			crm_prd_info		BASE TABLE
+DataWarehouse			bronze			erp_cust_az12		BASE TABLE
+DataWarehouse			bronze			erp_loc_a101		BASE TABLE
+DataWarehouse			bronze			erp_px_cat_g1v2		BASE TABLE
+DataWarehouse			bronze			crm_cust_info		BASE TABLE
+DataWarehouse			bronze			crm_sales_details	BASE TABLE
+DataWarehouse			gold			dim_customers		BASE TABLE
+DataWarehouse			gold			dim_products		BASE TABLE
+DataWarehouse			gold			dim_date			BASE TABLE
+DataWarehouse			gold			fact_sales			BASE TABLE
+DataWarehouse			gold			dim_order_date		VIEW
+DataWarehouse			gold			dim_shipping_date	VIEW
+DataWarehouse			gold			dim_due_date		VIEW
+DataWarehouse			silver			crm_cust_info		BASE TABLE
+DataWarehouse			silver			crm_prd_info		BASE TABLE
+DataWarehouse			silver			crm_sales_details	BASE TABLE
+DataWarehouse			silver			erp_cust_az12		BASE TABLE
+DataWarehouse			silver			erp_loc_a101		BASE TABLE
+DataWarehouse			silver			erp_px_cat_g1v2		BASE TABLE
+DataWarehouse			silver			dwh_dim_date		BASE TABLE*/
 -- ---------------------------------------------------------------------------------------------------------------------------------------
 -- ======================================================================================================================================
--- Query out columns of views in gold layer
--- dim_customers
+-- Query out metadata of dimensions and fact tables in gold layer
+-- dim_customers - table
 SELECT  COLUMN_NAME,
 		DATA_TYPE,
 		CHARACTER_MAXIMUM_LENGTH AS MAX_LENGTH
@@ -66,7 +69,7 @@ gender            	nvarchar	    50
 birthdate          	date        	NULL
 create_date        	date        	NULL*/
 -- ------------------------------------------------------------------------------------------------------------------------------------
--- dim_products
+-- dim_products - table
 SELECT  COLUMN_NAME,
 		DATA_TYPE,
 		CHARACTER_MAXIMUM_LENGTH AS MAX_LENGTH
@@ -77,20 +80,82 @@ WHERE TABLE_NAME = N'dim_products'
 -- =========================================================================================================================================
 -- Results:
 -- -----------------------------------------------------------------------------------------------------------------------------------------
-COLUMN_NAME      	DATA_TYPE  	MAX_LENGTH
-product_key      	bigint     	NULL
-product_id      	int        	NULL
-product_number  	nvarchar   	50
-product_name    	nvarchar   	50
-category_id	      nvarchar	  50
-category	        nvarchar  	50
-subcategory      	nvarchar  	50
-maintenance      	nvarchar	  50
-cost            	int        	NULL
-product_line    	nvarchar	  50
-start_date      	date	      NULL*/
+COLUMN_NAME      	DATA_TYPE  		MAX_LENGTH
+product_key      	bigint     		NULL
+product_id      	int        		NULL
+product_number  	nvarchar   		50
+product_name    	nvarchar   		50
+category_id	      	nvarchar	 	50
+category	        nvarchar  		50
+subcategory      	nvarchar  		50
+maintenance      	nvarchar	 	50
+cost            	int        		NULL
+product_line    	nvarchar	 	50
+start_date      	date	      	NULL*/
+-- ------------------------------------------------------------------------------------------------------------------------------------
+-- dim_date - role playing dimension
+SELECT  COLUMN_NAME,
+		DATA_TYPE,
+		CHARACTER_MAXIMUM_LENGTH AS MAX_LENGTH
+FROM INFORMATION_SCHEMA.COLUMNS
+WHERE TABLE_NAME = N'dim_date'
+
+-- ======================================================================================================================================
+-- Result:
+-- ---------------------------------------------------------------------------------------------------------------------------------------
+/*
+COLUMN_NAME					DATA_TYPE	MAX_LENGTH
+date_key					int			NULL
+date						datetime	NULL
+full_date					char		10
+day_of_month				varchar		2
+day_suffix					varchar		4
+day_name					varchar		9
+day_of_week					char		1
+day_of_week_in_month		varchar		2
+day_of_week_in_year			varchar		2
+day_of_quarter				varchar		3
+day_of_year					varchar		3
+week_of_month				varchar		1
+week_of_quarter				varchar		2
+week_of_year				varchar		2
+month						varchar		2
+month_name					varchar		9
+month_of_quarter			varchar		2
+quarter						char		1
+quarter_name				varchar		9
+year						char		4
+year_name					char		7
+month_year					char		10
+mmyyyy						char		6
+first_day_of_month			date		NULL
+last_day_of_month			date		NULL
+first_day_of_quarter		date		NULL
+last_day_of_quarter			date		NULL
+first_day_of_year			date		NULL
+last_day_of_year			date		NULL
+season						char		15
+is_holiday					bit			NULL
+is_weekday					bit			NULL
+holiday_name				varchar		50
+fiscal_day_of_year			varchar		3
+fiscal_week_of_year			varchar		3
+fiscal_month				varchar		2
+fiscal_quarter				char		1
+fiscal_quarter_name			varchar		9
+fiscal_year					char		4
+fiscal_year_name			char		7
+fiscal_month_year			char		10
+fiscal_mmyyyy				char		6
+fiscal_first_day_of_month	date		NULL
+fiscal_last_day_of_month	date		NULL
+fiscal_first_day_of_quarter	date		NULL
+fiscal_last_day_of_quarter	date		NULL
+fiscal_first_day_of_year	date		NULL
+fiscal_last_day_of_year		date		NULL*/
+
 -- -----------------------------------------------------------------------------------------------------------------------------------
--- dim_order_date
+-- dim_order_date - view
 SELECT  COLUMN_NAME,
 		DATA_TYPE,
 		CHARACTER_MAXIMUM_LENGTH AS MAX_LENGTH
@@ -151,7 +216,7 @@ order_fiscal_first_day_of_year		date		NULL
 order_fiscal_last_day_of_year		date		NULL
 */
 -- ----------------------------------------------------------------------------------------------------------------------------------
--- dim_due_date
+-- dim_due_date - view
 SELECT  COLUMN_NAME,
 		DATA_TYPE,
 		CHARACTER_MAXIMUM_LENGTH AS MAX_LENGTH
@@ -211,8 +276,10 @@ due_fiscal_first_day_of_quarter				date		NULL
 due_fiscal_last_day_of_quarter				date		NULL
 due_fiscal_first_day_of_year				date		NULL
 due_fiscal_last_day_of_year					date		NULL*/
+
+
 -- ------------------------------------------------------------------------------------------------------------------------------------
--- dim_shipping_date
+-- dim_shipping_date - view
 SELECT  COLUMN_NAME,
 		DATA_TYPE,
 		CHARACTER_MAXIMUM_LENGTH AS MAX_LENGTH
@@ -274,9 +341,6 @@ shipping_fiscal_last_day_of_year		date		NULL
 */
 -- ----------------------------------------------------------------------------------------------------------------------------------
 
-
-
-
 -- fact_sales
 SELECT  COLUMN_NAME,
 		DATA_TYPE,
@@ -316,6 +380,13 @@ FROM gold.dim_products
 UNION ALL
 
 SELECT 
+'Date Dimension' AS 'table_name',
+COUNT(*) AS records
+FROM gold.dim_date
+
+UNION ALL
+
+SELECT 
 'Order Date Dimension' AS 'table_name',
 COUNT(*) AS records
 FROM gold.dim_order_date
@@ -350,16 +421,12 @@ FROM gold.fact_sales
 table_name				records
 Customer Dimension		18484
 Product Dimension		295
+Date Dimension			32510
 Order Date Dimension	32510
 Due Date Dimension		32510
 Shipping Date Dimension	32510
 Sales Fact				60398
 */
-
-
-
-
-
 
 -- ==============================================================================================================================================================================================================
 -- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>Profile>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -431,14 +498,21 @@ total_rows	order_number_filled	product_key_filled	customer_key_filled		order_dat
 */
 -- Explanation and Insight
 -- !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! Invalid order dates found in source system data!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
--- >> Mising values in order date -- 19 values
--- The order dates were set to NULL intentionally because the source values are invalid. 
--- Updating them in ETL would require guessing a value, which would introduce assumptions and mask the fact that the original data was invalid. 
--- This could mislead analysts, as they would have no visibility into the underlying data quality issue.
--- At this stage, the rows should remain NULL to explicitly indicate invalid data.
--- Any decision to correct or derive values should only be made after consulting with domain experts and,
--- if required in the future, handled explicitly in ETL or stored as a separate derived field.
--- Besides the shipping_date is available - In our business model,  the sales month is defined as the shipping month (the date the product leaves the warehouse and ownership transfers to the buyer). */
+/* 
+Data Quality Note:
+
+Invalid order date values were identified in the source system (19 records).
+These values were set to NULL during transformation because they do not represent valid dates.
+
+Since order_date_key is a foreign key in fact_sales, NULL values cannot be retained 
+without violating referential integrity.
+
+To preserve referential integrity and maintain complete fact records, a default 
+"Unknown / Invalid Date" row is inserted into the date dimension. 
+
+A surrogate key value of -1 is used to represent these invalid or missing dates. 
+Fact table records with invalid order dates are updated to reference this -1 key.
+*/
 -- ================================================================================================================================================================================================================
 
 -- Step 3	 
