@@ -512,6 +512,10 @@ To preserve referential integrity and maintain complete fact records, a default
 
 A surrogate key value of -1 is used to represent these invalid or missing dates. 
 Fact table records with invalid order dates are updated to reference this -1 key.
+	 
+Result after replacing null values with -1
+total_rows	order_number_filled		product_key_filled	customer_key_filled	order_date_key_filled	shipping_date_key_filled	due_date_key_filled		sales_amount_filled		quantity_filled		price_filled
+60398		60398					60398				60398				60398					60398						60398					60398					60398				60398
 */
 -- ================================================================================================================================================================================================================
 
