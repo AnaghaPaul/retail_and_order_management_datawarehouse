@@ -59,7 +59,6 @@ GROUP BY s.customer_key
 SELECT
     c.cohort,
     SUM(CASE WHEN o.order_year IS NULL THEN s.sales_amount ELSE 0 END) AS revenue_null,
-    SUM(CASE WHEN o.order_year = NULL THEN s.sales_amount ELSE 0 END) AS revenue_null,
     SUM(CASE WHEN o.order_year = 2010 THEN s.sales_amount ELSE 0 END) AS revenue_2010,
     SUM(CASE WHEN o.order_year = 2011 THEN s.sales_amount ELSE 0 END) AS revenue_2011,
     SUM(CASE WHEN o.order_year = 2012 THEN s.sales_amount ELSE 0 END) AS revenue_2012,
@@ -73,7 +72,7 @@ JOIN gold.dim_order_date o
     ON s.order_date_key = o.order_date_key
 
 GROUP BY c.cohort
-ORDER BY c.cohort;
+    
 /*
 cohort	revenue_null	revenue_2010	revenue_2011	revenue_2012	revenue_2013	revenue_2014
 NULL	34             	0            	0            	0              	0            	0
