@@ -47,40 +47,53 @@ NULL	    2
 
 WITH customer_cohort AS
 (
-SELECT
-    s.customer_key,
-    MIN(o.order_year) AS cohort
-FROM gold.fact_sales s
-JOIN gold.dim_order_date o
-    ON s.order_date_key = o.order_date_key
-GROUP BY s.customer_key
-)
+    SELECT
+        customer_key,
+        MIN(order_date_key) AS first_order_date_key
+    FROM gold.fact_sales
+    GROUP BY customer_key
+), cohort_with_year AS
+(
+    SELECT
+        c.customer_key,
+        d.order_year AS cohort_year
+    FROM customer_cohort c
+    JOIN gold.dim_order_date d
+        ON c.first_order_date_key = d.order_date_key
+), cohort_activity AS
+(
+    SELECT
+        c.customer_key,
+        c.cohort_year,
+        d.order_year,
+        (d.order_year - c.cohort_year) AS year_offset,
+        s.sales_amount
+    FROM cohort_with_year c
+    JOIN gold.fact_sales s
+        ON c.customer_key = s.customer_key
+    JOIN gold.dim_order_date d
+        ON s.order_date_key = d.order_date_key
+)SELECT
+    cohort_year,
 
-SELECT
-    c.cohort,
-    SUM(CASE WHEN o.order_year IS NULL THEN s.sales_amount ELSE 0 END) AS revenue_null,
-    SUM(CASE WHEN o.order_year = 2010 THEN s.sales_amount ELSE 0 END) AS revenue_2010,
-    SUM(CASE WHEN o.order_year = 2011 THEN s.sales_amount ELSE 0 END) AS revenue_2011,
-    SUM(CASE WHEN o.order_year = 2012 THEN s.sales_amount ELSE 0 END) AS revenue_2012,
-    SUM(CASE WHEN o.order_year = 2013 THEN s.sales_amount ELSE 0 END) AS revenue_2013,
-    SUM(CASE WHEN o.order_year = 2014 THEN s.sales_amount ELSE 0 END) AS revenue_2014
+    SUM(CASE WHEN year_offset = 0 THEN sales_amount ELSE 0 END) AS Y0,
+    SUM(CASE WHEN year_offset = 1 THEN sales_amount ELSE 0 END) AS Y1,
+    SUM(CASE WHEN year_offset = 2 THEN sales_amount ELSE 0 END) AS Y2,
+    SUM(CASE WHEN year_offset = 3 THEN sales_amount ELSE 0 END) AS Y3,
+    SUM(CASE WHEN year_offset = 4 THEN sales_amount ELSE 0 END) AS Y4
 
-FROM customer_cohort c
-JOIN gold.fact_sales s
-    ON c.customer_key = s.customer_key
-JOIN gold.dim_order_date o
-    ON s.order_date_key = o.order_date_key
-
-GROUP BY c.cohort
+FROM cohort_activity
+GROUP BY cohort_year
+ORDER BY cohort_year;
     
 /*
-cohort	revenue_null	revenue_2010	revenue_2011	revenue_2012	revenue_2013	revenue_2014
-NULL	34             	0            	0            	0              	0            	0
-2010	0            	43419        	0            	0            	33796        	0
-2011	2344           	0            	7075088	        60955	        4325414        	0
-2012	2295        	0            	0            	5781276	        6096229        	0
-2013	319            	0	            0            	0	            5889439	        19593
-2014	0            	0	            0            	0            	0            	26049
+cohort_year		Y0			Y1			Y2			Y3			Y4
+NULL			0			0			0			0			0
+2010			43419		0			0			33796		0
+2011			7071510		60955		4325399		0			0
+2012			5779094		6093791		0			0			0
+2013			5883470		19396		0			0			0
+2014			26049		0			0			0			0
 */
 
 -- Revenue growth each year
