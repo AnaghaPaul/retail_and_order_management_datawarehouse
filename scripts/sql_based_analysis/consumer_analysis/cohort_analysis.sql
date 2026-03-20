@@ -191,51 +191,43 @@ Sep-2013  	    1209
 
 -- Use Case:
 -- Detect seasonality in acquisition (e.g., campaigns, holidays)
-WITH customer_cohort AS
-(
+WITH customer_cohort AS (
+    -- Identify the first purchase date per customer
     SELECT
         f.customer_key,
-        MIN(f.order_date_key) AS first_order_date_key
+        MIN(d.order_date) AS first_order_date
     FROM gold.fact_sales f
+    JOIN gold.dim_order_date d
+        ON f.order_date_key = d.order_date_key
     GROUP BY f.customer_key
-)
-, cohort_with_date AS
-(
+),
+cohort_with_period AS (
+    -- Map each customer to their cohort period string
     SELECT
         c.customer_key,
-        d.order_fiscal_year,
-        d.order_fiscal_month,
-        d.order_fiscal_month_year AS cohort_period,
-        c.first_order_date_key
+        c.first_order_date,
+        d.order_fiscal_month_year AS cohort_period
     FROM customer_cohort c
     JOIN gold.dim_order_date d
-        ON c.first_order_date_key = d.order_date_key
-)
-, cohort_activity AS
-(
+        ON c.first_order_date = d.order_date
+	WHERE d.order_fiscal_year = 2013
+),
+cohort_activity AS (
+    -- Join all orders for these customers and calculate month offset
     SELECT
         c.customer_key,
         c.cohort_period,
-        c.order_fiscal_year AS cohort_year,
-        c.order_fiscal_month AS cohort_month,
-
-        d.order_fiscal_year AS activity_year,
-        d.order_fiscal_month AS activity_month,
-
-        (d.order_fiscal_year - c.order_fiscal_year) * 12 +
-        (d.order_fiscal_month - c.order_fiscal_month) AS month_offset,
-
-        s.sales_amount
-    FROM cohort_with_date c
+        s.sales_amount,
+        d.order_date AS activity_date,
+        FLOOR(DATEDIFF(DAY, c.first_order_date, d.order_date) / 30.44) AS month_offset
+    FROM cohort_with_period c
     JOIN gold.fact_sales s
         ON c.customer_key = s.customer_key
     JOIN gold.dim_order_date d
         ON s.order_date_key = d.order_date_key
-    WHERE c.order_fiscal_year = 2013
 )
 SELECT
     cohort_period,
-
     SUM(CASE WHEN month_offset = 0 THEN sales_amount ELSE 0 END) AS M0,
     SUM(CASE WHEN month_offset = 1 THEN sales_amount ELSE 0 END) AS M1,
     SUM(CASE WHEN month_offset = 2 THEN sales_amount ELSE 0 END) AS M2,
@@ -248,25 +240,24 @@ SELECT
     SUM(CASE WHEN month_offset = 9 THEN sales_amount ELSE 0 END) AS M9,
     SUM(CASE WHEN month_offset = 10 THEN sales_amount ELSE 0 END) AS M10,
     SUM(CASE WHEN month_offset = 11 THEN sales_amount ELSE 0 END) AS M11
-
 FROM cohort_activity
 GROUP BY cohort_period
-ORDER BY MIN(cohort_month);
+ORDER BY MIN(activity_date);
 
 /*
-cohort_period	    M0	        M1	        M2	        M3	        M4	        M5	        M6	        M7	        M8        	M9	           M10        	M11
-Jan-2013  	        295407	    810	        498	        5489	    3123	    801	        1056    	5488    	394	        1547	       4506        	2216
-Feb-2013  	        295175	    4679    	4169	    8522	    11173	    4480    	2854	    4475	    3941	    4050	       4905        	3413
-Mar-2013  	        388986	    2185	    2769	    9847	    12035	    11357	    3059	    2413	    2660	    2681	       2221        	0
-Apr-2013  	        375364	    1508	    5245	    8581	    1477	    4843	    1530	    1151	    2061	    1659	       0	        0
-May-2013  	        416393	    2267	    8473	    13204	    10999	    1189	    1490	    1740	    1885    	0	           0	        0
-Jun-2013  	        617001	    1281	    4604	    7047	    27967	    7105	    2225	    1433	    0	        0	           0	        0
-Jul-2013  	        325126	    724	        1676	    1488	    3669	    21337	    1462	    0	        0	        0	           0	        0
-Aug-2013  	        341536	    1307	    2303	    1663	    14096	    1338	    0        	0	        0        	0	           0	        0
-Sep-2013  	        479696	    2479	    1591	    2095	    1713	    0	        0	        0	        0        	0	           0	        0
-Oct-2013  	        516918	    1416	    1419	    985	        0	        0        	0	        0	        0	        0	           0	        0
-Nov-2013  	        692415    	1437	    1220	    0	        0	        0	        0	        0	        0	        0	           0	        0
-Dec-2013  	        829423	    1523	    0	        0	        0	        0	        0	        0	        0	        0	           0	        0
+cohort_period	M0	        M1    	M2	        M3    	M4    	M5	    M6	    M7    	M8	    M9	    M10	     M11
+Jan-2013  	    296217	    484	    596	        5617	3144	1126	5564	284    	1581	2256	4345	665
+Feb-2013  	    297243	    4413	8808	    6108	9722	3872	3090	4456	4760	4441	3739	2204
+Mar-2013  	    390165	    2156	2561	    12364	12197	9274	2810	2239	2784	2891	772    	0
+Apr-2013  	    376308	    1662	7363	    6097	4297	2041	1566	1323	1619	1143	0	    0
+May-2013  	    417302	    6457	8505	    11255	8468	1501	1357	1389	1406	0	    0    	0
+Jun-2013  	    617676	    1509	7473	    15860	21714	2170	1584	677	    0	    0	    0    	0
+Jul-2013  	    325660	    936    	1657	    1569	13543	11445	672    	0	    0	    0	    0    	0
+Aug-2013  	    342637	    708    	3017	    6258	9374	622	    0	    0	    0	    0	    0    	0
+Sep-2013  	    482736	    2956	1755	    1767	803	    0	    0	    0	    0	    0	    0    	0
+Oct-2013  	    519960	    1452	1140	    516    	0	    0	    0	    0	    0	    0	    0    	0
+Nov-2013      	692863	    1378	831	        0	    0	    0    	0	    0	    0	    0	    0    	0
+Dec-2013  	    829904	    893	    149	        0	    0	    0	    0	    0	    0	    0	    0	    0
 */
 -- =========================================================
 -- STEP 5: MONTHLY REVENUE RETENTION MATRIX
@@ -317,7 +308,7 @@ cohort_with_date AS
         d.order_fiscal_year,
         d.order_fiscal_month,
         d.order_fiscal_month_year AS cohort_period,
-        c.first_order_date_key
+        d.order_date AS first_order_date
     FROM customer_cohort c
     JOIN gold.dim_order_date d
         ON c.first_order_date_key = d.order_date_key
@@ -331,9 +322,11 @@ cohort_activity AS
         c.order_fiscal_month AS cohort_month,
         d.order_fiscal_year AS activity_year,
         d.order_fiscal_month AS activity_month,
-        (d.order_fiscal_year - c.order_fiscal_year) * 12 +
-        (d.order_fiscal_month - c.order_fiscal_month) AS month_offset,
-        s.sales_amount
+        s.sales_amount,
+
+        -- Month offset using datediff in months
+        DATEDIFF(MONTH, c.first_order_date, d.order_date) AS month_offset
+
     FROM cohort_with_date c
     JOIN gold.fact_sales s
         ON c.customer_key = s.customer_key
@@ -356,28 +349,28 @@ SELECT
     CAST(SUM(CASE WHEN month_offset = 9 THEN sales_amount ELSE 0 END) * 1.0 / b.total_customers AS DECIMAL(10,2)) AS ARPU_M9,
     CAST(SUM(CASE WHEN month_offset = 10 THEN sales_amount ELSE 0 END) * 1.0 / b.total_customers AS DECIMAL(10,2)) AS ARPU_M10,
     CAST(SUM(CASE WHEN month_offset = 11 THEN sales_amount ELSE 0 END) * 1.0 / b.total_customers AS DECIMAL(10,2)) AS ARPU_M11
+
 FROM cohort_activity a
 JOIN cohort_base b
     ON a.cohort_period = b.cohort_period
 GROUP BY
     a.cohort_period,
     b.total_customers
-ORDER BY MIN(a.cohort_month); 
-
+ORDER BY MIN(a.cohort_month);
 /*
-cohort_period	total_customers    	ARPU_M0    	    ARPU_M1	    ARPU_M2    	ARPU_M3	    ARPU_M4	    ARPU_M5	    ARPU_M6	    ARPU_M7	    ARPU_M8    	ARPU_M9    	ARPU_M10	ARPU_M11
-Jan-2013  	    249	                1186.37    	    3.25	    2.00	    22.04	    12.54	    3.22	    4.24	    22.04	    1.58	    6.21	    18.10	    8.90
-Feb-2013  	    1091	            270.55	        4.29	    3.82	    7.81	    10.24	    4.11	    2.62	    4.10	    3.61	    3.71	    4.50	    3.13
-Mar-2013  	    1302	            298.76	        1.68	    2.13	    7.56	    9.24	    8.72	    2.35	    1.85	    2.04	    2.06	    1.71	    0.00
-Apr-2013  	    1017	            369.09	        1.48	    5.16	    8.44	    1.45	    4.76	    1.50	    1.13	    2.03	    1.63	    0.00	    0.00
-May-2013  	    1015	            410.24	        2.23	    8.35	    13.01	    10.84	    1.17	    1.47	    1.71	    1.86	    0.00	    0.00	    0.00
-Jun-2013  	    1342	            459.76        	0.95	    3.43	    5.25	    20.84	    5.29	    1.66	    1.07	    0.00	    0.00	    0.00	    0.00
-Jul-2013  	    951	                341.88        	0.76	    1.76	    1.56	    3.86	    22.44	    1.54	    0.00	    0.00	    0.00	    0.00	    0.00
-Aug-2013  	    970	                352.10	        1.35    	2.37       	1.71	    14.53	    1.38	    0.00	    0.00	    0.00	    0.00	    0.00	    0.00
-Sep-2013  	    1209	            396.77	        2.05    	1.32	    1.73	    1.42	    0.00	    0.00	    0.00	    0.00	    0.00	    0.00	    0.00
-Oct-2013  	    1012	            510.79	        1.40    	1.40	    0.97	    0.00	    0.00	    0.00	    0.00	    0.00	    0.00	    0.00	    0.00
-Nov-2013  	    1063	            651.38        	1.35    	1.15	    0.00	    0.00	    0.00	    0.00	    0.00	    0.00	    0.00	    0.00	    0.00
-Dec-2013  	    1285	            645.47        	1.19	    0.00	    0.00	    0.00	    0.00    	0.00	    0.00	    0.00	    0.00	    0.00	    0.00
+cohort_period	total_customers    	ARPU_M0	ARPU_M1	ARPU_M2	ARPU_M3	ARPU_M4	ARPU_M5	ARPU_M6	ARPU_M7	ARPU_M8	ARPU_M9	ARPU_M10	ARPU_M11
+Jan-2013  	    249	                1187.31	2.32	2.00	22.04	12.80	2.82	4.38	22.35	1.14	6.38	24.60	2.37
+Feb-2013  	    1091	        270.38	3.72	3.92	8.50	7.42	6.35	2.84	3.77	4.26	3.91	3.81	3.27
+Mar-2013  	    1302	        298.09	2.35	2.17	5.31	11.65	6.95	3.58	2.11	2.10	1.96	1.69	0.15
+Apr-2013  	    1017	        369.09	1.48	2.57	11.06	1.63	4.31	1.79	1.31	1.80	1.63	0.00	0.00
+May-2013  	    1015	        410.29	2.13	8.40	13.08	10.76	1.22	1.65	1.49	1.86	0.00	0.00	0.00
+Jun-2013  	    1342	        459.78	1.00	3.30	5.08	21.16	5.52	1.32	0.89	0.21	0.00	0.00	0.00
+Jul-2013  	    951            	341.90	0.90	1.55	1.66	3.95	22.30	1.54	0.00	0.00	0.00	0.00	0.00
+Aug-2013  	    970	            352.29	0.96	2.75	1.51	14.57	1.36	0.01	0.00	0.00	0.00	0.00	0.00
+Sep-2013  	    1209	        396.40	1.63	2.33	1.65	1.14	0.13	0.00	0.00	0.00	0.00	0.00	0.00
+Oct-2013  	    1012	        510.88	1.36	1.35	0.97	0.00	0.00	0.00	0.00	0.00	0.00	0.00	0.00
+Nov-2013  	    1063	        651.43	1.23	1.07	0.14	0.00	0.00	0.00	0.00	0.00	0.00	0.00	0.00
+Dec-2013  	    1285	        645.19	1.09	0.37	0.00	0.00	0.00	0.00	0.00	0.00	0.00	0.00	0.00
 */
 
 WITH customer_cohort AS
