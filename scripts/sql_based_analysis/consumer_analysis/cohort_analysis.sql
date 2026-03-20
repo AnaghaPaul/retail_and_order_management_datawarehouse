@@ -372,3 +372,101 @@ Oct-2013  	    1012	            510.79	        1.40    	1.40	    0.97	    0.00	 
 Nov-2013  	    1063	            651.38        	1.35    	1.15	    0.00	    0.00	    0.00	    0.00	    0.00	    0.00	    0.00	    0.00	    0.00
 Dec-2013  	    1285	            645.47        	1.19	    0.00	    0.00	    0.00	    0.00    	0.00	    0.00	    0.00	    0.00	    0.00	    0.00
 */
+
+WITH customer_cohort AS
+(
+    SELECT
+        f.customer_key,
+        MIN(f.order_date_key) AS first_order_date_key
+    FROM gold.fact_sales f
+    GROUP BY f.customer_key
+),
+cohort_base AS
+(
+    SELECT
+        d.order_fiscal_month_year AS cohort_period,
+        d.order_fiscal_year,
+        d.order_fiscal_month,
+        COUNT(DISTINCT c.customer_key) AS total_customers
+    FROM customer_cohort c
+    JOIN gold.dim_order_date d
+        ON c.first_order_date_key = d.order_date_key
+    WHERE d.order_fiscal_year = 2013
+    GROUP BY
+        d.order_fiscal_month_year,
+        d.order_fiscal_year,
+        d.order_fiscal_month
+),
+cohort_with_date AS
+(
+    SELECT
+        c.customer_key,
+        d.order_fiscal_month_year AS cohort_period,
+        d.order_fiscal_year,
+        d.order_fiscal_month
+    FROM customer_cohort c
+    JOIN gold.dim_order_date d
+        ON c.first_order_date_key = d.order_date_key
+),
+cohort_activity AS
+(
+    SELECT DISTINCT
+        c.customer_key,
+        c.cohort_period,
+        c.order_fiscal_year AS cohort_year,
+        c.order_fiscal_month AS cohort_month,
+
+        d.order_fiscal_year AS activity_year,
+        d.order_fiscal_month AS activity_month,
+
+        (d.order_fiscal_year - c.order_fiscal_year) * 12 +
+        (d.order_fiscal_month - c.order_fiscal_month) AS month_offset
+    FROM cohort_with_date c
+    JOIN gold.fact_sales s
+        ON c.customer_key = s.customer_key
+    JOIN gold.dim_order_date d
+        ON s.order_date_key = d.order_date_key
+    WHERE c.order_fiscal_year = 2013
+)
+SELECT
+    a.cohort_period,
+    b.total_customers,
+
+    CAST(COUNT(DISTINCT CASE WHEN month_offset = 0 THEN a.customer_key END) * 1.0 / b.total_customers AS DECIMAL(5,2)) AS R0,
+    CAST(COUNT(DISTINCT CASE WHEN month_offset = 1 THEN a.customer_key END) * 1.0 / b.total_customers AS DECIMAL(5,2)) AS R1,
+    CAST(COUNT(DISTINCT CASE WHEN month_offset = 2 THEN a.customer_key END) * 1.0 / b.total_customers AS DECIMAL(5,2)) AS R2,
+    CAST(COUNT(DISTINCT CASE WHEN month_offset = 3 THEN a.customer_key END) * 1.0 / b.total_customers AS DECIMAL(5,2)) AS R3,
+    CAST(COUNT(DISTINCT CASE WHEN month_offset = 4 THEN a.customer_key END) * 1.0 / b.total_customers AS DECIMAL(5,2)) AS R4,
+    CAST(COUNT(DISTINCT CASE WHEN month_offset = 5 THEN a.customer_key END) * 1.0 / b.total_customers AS DECIMAL(5,2)) AS R5,
+    CAST(COUNT(DISTINCT CASE WHEN month_offset = 6 THEN a.customer_key END) * 1.0 / b.total_customers AS DECIMAL(5,2)) AS R6,
+    CAST(COUNT(DISTINCT CASE WHEN month_offset = 7 THEN a.customer_key END) * 1.0 / b.total_customers AS DECIMAL(5,2)) AS R7,
+    CAST(COUNT(DISTINCT CASE WHEN month_offset = 8 THEN a.customer_key END) * 1.0 / b.total_customers AS DECIMAL(5,2)) AS R8,
+    CAST(COUNT(DISTINCT CASE WHEN month_offset = 9 THEN a.customer_key END) * 1.0 / b.total_customers AS DECIMAL(5,2)) AS R9,
+    CAST(COUNT(DISTINCT CASE WHEN month_offset = 10 THEN a.customer_key END) * 1.0 / b.total_customers AS DECIMAL(5,2)) AS R10,
+    CAST(COUNT(DISTINCT CASE WHEN month_offset = 11 THEN a.customer_key END) * 1.0 / b.total_customers AS DECIMAL(5,2)) AS R11
+
+FROM cohort_activity a
+JOIN cohort_base b
+    ON a.cohort_period = b.cohort_period
+
+GROUP BY
+    a.cohort_period,
+    b.total_customers
+
+ORDER BY MIN(a.cohort_month);
+
+/*
+cohort_period	total_customers    	R0	    R1	    R2    	R3	    R4	    R5	    R6	    R7	    R8	    R9	    R10	    R11
+Jan-2013      	249	                1.00	0.04	0.03	0.05	0.04	0.04	0.04	0.04	0.04	0.04	0.04	0.05
+Feb-2013      	1091	            1.00	0.06	0.05	0.05	0.06	0.05	0.04	0.05	0.06	0.05	0.06	0.05
+Mar-2013       	1302	            1.00	0.03	0.03	0.03	0.04	0.03	0.04	0.03	0.04	0.04	0.03	0.00
+Apr-2013  	    1017	            1.00	0.03	0.04	0.03	0.03	0.04	0.03	0.02	0.03	0.03	0.00	0.00
+May-2013  	    1015	            1.00	0.04	0.02	0.03	0.03	0.02	0.03	0.03	0.03	0.00	0.00	0.00
+Jun-2013  	    1342	            1.00	0.02	0.03	0.04	0.03	0.03	0.03	0.02	0.00	0.00	0.00	0.00
+Jul-2013  	    951	                1.00	0.02	0.03	0.03	0.03	0.04	0.02	0.00	0.00	0.00	0.00	0.00
+Aug-2013  	    970	                1.00	0.02	0.03	0.02	0.03	0.02	0.00	0.00	0.00	0.00	0.00	0.00
+Sep-2013  	    1209            	1.00	0.02	0.02	0.03	0.03	0.00	0.00	0.00	0.00	0.00	0.00	0.00
+Oct-2013  	    1012	            1.00	0.02	0.02	0.02	0.00	0.00	0.00	0.00	0.00	0.00	0.00	0.00
+Nov-2013  	    1063	            1.00	0.02	0.02	0.00	0.00	0.00	0.00	0.00	0.00	0.00	0.00	0.00
+Dec-2013  	    1285	            1.00	0.02	0.00	0.00	0.00	0.00	0.00	0.00	0.00	0.00	0.00	0.00
+*/
