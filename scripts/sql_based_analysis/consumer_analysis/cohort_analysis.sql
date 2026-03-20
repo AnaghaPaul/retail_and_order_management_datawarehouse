@@ -281,7 +281,7 @@ WITH customer_cohort AS
 (
     SELECT
         f.customer_key,
-        MIN(f.order_date_key) AS first_order_date_key
+        MIN(f.order_date_key) AS first_order_date_key -- first_purchase_date
     FROM gold.fact_sales f
     GROUP BY f.customer_key
 ),
@@ -294,7 +294,7 @@ cohort_base AS
         COUNT(DISTINCT c.customer_key) AS total_customers
     FROM customer_cohort c
     JOIN gold.dim_order_date d
-        ON c.first_order_date_key = d.order_date_key
+        ON c.first_order_date_key = d.order_date_key 
     WHERE d.order_fiscal_year = 2013
     GROUP BY
         d.order_fiscal_year,
@@ -324,8 +324,7 @@ cohort_activity AS
         d.order_fiscal_month AS activity_month,
         s.sales_amount,
 
-        -- Month offset using datediff in months
-        DATEDIFF(MONTH, c.first_order_date, d.order_date) AS month_offset
+         FLOOR(DATEDIFF(DAY, c.first_order_date, d.order_date) / 30.44) AS month_offset
 
     FROM cohort_with_date c
     JOIN gold.fact_sales s
@@ -358,20 +357,21 @@ GROUP BY
     b.total_customers
 ORDER BY MIN(a.cohort_month);
 /*
-cohort_period	total_customers    	ARPU_M0	ARPU_M1	ARPU_M2	ARPU_M3	ARPU_M4	ARPU_M5	ARPU_M6	ARPU_M7	ARPU_M8	ARPU_M9	ARPU_M10	ARPU_M11
-Jan-2013  	    249	                1187.31	2.32	2.00	22.04	12.80	2.82	4.38	22.35	1.14	6.38	24.60	2.37
-Feb-2013  	    1091	        270.38	3.72	3.92	8.50	7.42	6.35	2.84	3.77	4.26	3.91	3.81	3.27
-Mar-2013  	    1302	        298.09	2.35	2.17	5.31	11.65	6.95	3.58	2.11	2.10	1.96	1.69	0.15
-Apr-2013  	    1017	        369.09	1.48	2.57	11.06	1.63	4.31	1.79	1.31	1.80	1.63	0.00	0.00
-May-2013  	    1015	        410.29	2.13	8.40	13.08	10.76	1.22	1.65	1.49	1.86	0.00	0.00	0.00
-Jun-2013  	    1342	        459.78	1.00	3.30	5.08	21.16	5.52	1.32	0.89	0.21	0.00	0.00	0.00
-Jul-2013  	    951            	341.90	0.90	1.55	1.66	3.95	22.30	1.54	0.00	0.00	0.00	0.00	0.00
-Aug-2013  	    970	            352.29	0.96	2.75	1.51	14.57	1.36	0.01	0.00	0.00	0.00	0.00	0.00
-Sep-2013  	    1209	        396.40	1.63	2.33	1.65	1.14	0.13	0.00	0.00	0.00	0.00	0.00	0.00
-Oct-2013  	    1012	        510.88	1.36	1.35	0.97	0.00	0.00	0.00	0.00	0.00	0.00	0.00	0.00
-Nov-2013  	    1063	        651.43	1.23	1.07	0.14	0.00	0.00	0.00	0.00	0.00	0.00	0.00	0.00
-Dec-2013  	    1285	        645.19	1.09	0.37	0.00	0.00	0.00	0.00	0.00	0.00	0.00	0.00	0.00
-*/
+cohort_period	total_customers		ARPU_M0		ARPU_M1		ARPU_M2		ARPU_M3		ARPU_M4		ARPU_M5		ARPU_M6		ARPU_M7		ARPU_M8		ARPU_M9		ARPU_M10	ARPU_M11
+Jan-2013  		249					1189.63		1.94		2.39		22.56		12.63		4.52		22.35		1.14		6.35		9.06		17.45		2.67
+Feb-2013  		1091				272.40		3.94		8.01		5.47		8.85		3.50		2.73		3.97		4.35		4.03		3.40		1.84
+Mar-2013  		1302				299.67		1.66		1.97		9.50		9.37		7.12		2.16		1.72		2.14		2.22		0.59		0.00
+Apr-2013  		1017				370.02		1.63		7.24		6.00		4.23		2.01		1.54		1.30		1.59		1.12		0.00		0.00
+May-2013  		1015				411.13		6.36		8.38		11.09		8.34		1.48		1.34		1.37		1.39		0.00		0.00		0.00
+Jun-2013  		1342				460.27		1.12		5.57		11.82		16.18		1.62		1.18		0.50		0.00		0.00		0.00		0.00
+Jul-2013  		951					342.44		0.98		1.74		1.65		14.24		12.03		0.71		0.00		0.00		0.00		0.00		0.00
+Aug-2013  		970					352.95		0.69		3.11		6.45		9.60		0.64		0.00		0.00		0.00		0.00		0.00		0.00
+Sep-2013  		1209				397.26		2.44		1.45		1.46		0.66		0.00		0.00		0.00		0.00		0.00		0.00		0.00
+Oct-2013  		1012				511.49		1.43		1.13		0.51		0.00		0.00		0.00		0.00		0.00		0.00		0.00		0.00
+Nov-2013  		1063				651.80		1.30		0.78		0.00		0.00		0.00		0.00		0.00		0.00		0.00		0.00		0.00
+Dec-2013  		1285				645.84		0.69		0.12		0.00		0.00		0.00		0.00		0.00		0.00		0.00		0.00		0.00
+Dec-2013  	    1285	      	    645.19		1.09		0.37		0.00		0.00		0.00		0.00		0.00		0.00		0.00		0.00		0.00
+*/	
 
 WITH customer_cohort AS
 (
