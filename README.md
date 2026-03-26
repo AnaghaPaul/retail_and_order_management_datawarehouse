@@ -340,6 +340,7 @@ Although transformation was completed during the Medallion pipeline, an addition
 Exploration Focus:
 
 Understanding schema design and relationships across fact_sales and dimensions
+
 Reviewing:
 Tables, views, and schemas
 Column structures and data types
@@ -395,10 +396,15 @@ Cumulative revenue trends over time
 Insights Enabled:
 
 Comparison of customer quality across acquisition periods
+
 Identification of:
+
 Strong vs weak acquisition cohorts
+
 Retention and revenue decay patterns
+
 Long-term customer value trends
+
 📈 5. Revenue-Based Cohort Trends
 
 Advanced SQL window functions were used to compute lifecycle metrics:
