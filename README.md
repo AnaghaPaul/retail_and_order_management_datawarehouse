@@ -333,7 +333,7 @@ Focus areas:
 
 The analytical layer builds on the already structured warehouse, with SQL used not just for querying but for data validation, exploratory understanding, and advanced business analysis.
 
-1. Data Exploration & Validation
+### 1. Data Exploration & Validation
 
 Although transformation was completed during the Medallion pipeline, an additional SQL-based validation layer was applied to ensure analytical reliability.
 
@@ -360,7 +360,7 @@ No broken joins
 Consistent aggregation behavior in BI tools
 
 
-2. Data Profiling
+### 2. Data Profiling
 
 SQL profiling queries were used to verify data quality at the analytical layer.
 
@@ -377,7 +377,7 @@ Outcome:
 Confirmed clean, analysis-ready dataset
 Eliminated risks of double counting or skewed aggregations
 
-3.Cohort Analysis (Customer Lifecycle)
+### 3.Cohort Analysis (Customer Lifecycle)
 
 A cohort-based approach was implemented to analyze how customer value evolves over time.
 
