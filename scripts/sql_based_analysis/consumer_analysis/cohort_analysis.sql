@@ -144,95 +144,89 @@ cohort_year	cohort_month	cohort_mmyyyy	cohort_month_year	M0				M1				M2				M3			
 
 */
 
-WITH first_purchase_info AS
-(
+WITH order_level_sales AS (
     SELECT 
+        order_number,
         customer_key,
-        MIN(order_date_key) AS first_purchase_date_key
-    FROM gold.fact_sales 
+        order_date_key,
+        SUM(sales_amount) AS order_revenue
+    FROM gold.fact_sales
+    GROUP BY order_number, customer_key, order_date_key
+),
+first_purchase_info AS (
+    SELECT customer_key,
+           MIN(order_date_key) AS first_purchase_date_key
+    FROM order_level_sales 
     GROUP BY customer_key
 ),
-customer_cohort AS
-(
-    SELECT
-        f.customer_key,
-        o.order_fiscal_year AS cohort_year,
-        o.order_fiscal_month AS cohort_month,
-        o.order_fiscal_quarter AS cohort_quarter,
-        o.order_fiscal_mmyyyy AS cohort_mmyyyy,
-        o.order_fiscal_month_year AS cohort_month_year
+customer_cohort AS (
+    SELECT f.customer_key,
+           o.order_fiscal_year AS cohort_year,
+           o.order_fiscal_month AS cohort_month,
+           o.order_fiscal_quarter AS cohort_quarter,
+           o.order_fiscal_mmyyyy AS cohort_mmyyyy,
+           o.order_fiscal_month_year AS cohort_month_year
     FROM first_purchase_info AS f
     JOIN gold.dim_order_date AS o
-        ON f.first_purchase_date_key = o.order_date_key
+      ON f.first_purchase_date_key = o.order_date_key
     WHERE f.first_purchase_date_key != -1
 ),
-purchase_info AS
-(
-    SELECT 
-        c.customer_key,
-        c.cohort_year,
-        c.cohort_month,
-        c.cohort_quarter,
-        c.cohort_mmyyyy,
-        c.cohort_month_year,
-        s.order_number,
-        s.order_date_key AS order_date_key,
-        o.order_date AS order_date,
-        o.order_fiscal_year AS order_year,
-        o.order_fiscal_month AS order_month,
-        o.order_fiscal_quarter AS order_quarter,
-        (o.order_fiscal_year - c.cohort_year) * 12 + (o.order_fiscal_month - c.cohort_month) AS month_offset,
-        s.sales_amount
+purchase_info AS (
+    SELECT c.customer_key,
+           c.cohort_year,
+           c.cohort_month,
+           c.cohort_quarter,
+           c.cohort_mmyyyy,
+           c.cohort_month_year,
+           s.order_number,
+           s.order_revenue,
+           o.order_date AS order_date,
+           o.order_fiscal_year AS order_year,
+           o.order_fiscal_month AS order_month,
+           o.order_fiscal_quarter AS order_quarter,
+           (o.order_fiscal_year - c.cohort_year) * 12 + (o.order_fiscal_month - c.cohort_month) AS month_offset
     FROM customer_cohort AS c
-    JOIN gold.fact_sales s
-        ON c.customer_key = s.customer_key
+    JOIN order_level_sales s
+      ON c.customer_key = s.customer_key
     JOIN gold.dim_order_date AS o
-        ON s.order_date_key = o.order_date_key
+      ON s.order_date_key = o.order_date_key
 ),
-cohort_summary AS
-(
-    SELECT
-        cohort_year,
-        cohort_month,
-        cohort_mmyyyy,
-        cohort_month_year,
-        COUNT(DISTINCT customer_key) AS num_customers,
-        SUM(CASE WHEN month_offset = 0 THEN sales_amount ELSE 0 END) AS M0,
-        SUM(CASE WHEN month_offset = 1 THEN sales_amount ELSE 0 END) AS M1,
-        SUM(CASE WHEN month_offset = 2 THEN sales_amount ELSE 0 END) AS M2,
-        SUM(CASE WHEN month_offset = 3 THEN sales_amount ELSE 0 END) AS M3,
-        SUM(CASE WHEN month_offset = 4 THEN sales_amount ELSE 0 END) AS M4,
-        SUM(CASE WHEN month_offset = 5 THEN sales_amount ELSE 0 END) AS M5,
-        SUM(CASE WHEN month_offset = 6 THEN sales_amount ELSE 0 END) AS M6,
-        SUM(CASE WHEN month_offset = 7 THEN sales_amount ELSE 0 END) AS M7,
-        SUM(CASE WHEN month_offset = 8 THEN sales_amount ELSE 0 END) AS M8,
-        SUM(CASE WHEN month_offset = 9 THEN sales_amount ELSE 0 END) AS M9,
-        SUM(CASE WHEN month_offset = 10 THEN sales_amount ELSE 0 END) AS M10,
-        SUM(CASE WHEN month_offset = 11 THEN sales_amount ELSE 0 END) AS M11
+cohort_summary AS (
+    SELECT cohort_month,
+           COUNT(DISTINCT customer_key) AS num_customers,
+           SUM(CASE WHEN month_offset = 0 THEN order_revenue ELSE 0 END) AS M0,
+           SUM(CASE WHEN month_offset = 1 THEN order_revenue ELSE 0 END) AS M1,
+           SUM(CASE WHEN month_offset = 2 THEN order_revenue ELSE 0 END) AS M2,
+           SUM(CASE WHEN month_offset = 3 THEN order_revenue ELSE 0 END) AS M3,
+           SUM(CASE WHEN month_offset = 4 THEN order_revenue ELSE 0 END) AS M4,
+           SUM(CASE WHEN month_offset = 5 THEN order_revenue ELSE 0 END) AS M5,
+           SUM(CASE WHEN month_offset = 6 THEN order_revenue ELSE 0 END) AS M6,
+           SUM(CASE WHEN month_offset = 7 THEN order_revenue ELSE 0 END) AS M7,
+           SUM(CASE WHEN month_offset = 8 THEN order_revenue ELSE 0 END) AS M8,
+           SUM(CASE WHEN month_offset = 9 THEN order_revenue ELSE 0 END) AS M9,
+           SUM(CASE WHEN month_offset = 10 THEN order_revenue ELSE 0 END) AS M10,
+           SUM(CASE WHEN month_offset = 11 THEN order_revenue ELSE 0 END) AS M11,
+           SUM(CASE WHEN month_offset > 11 THEN order_revenue ELSE 0 END) AS other
     FROM purchase_info
-    GROUP BY cohort_year, cohort_month, cohort_mmyyyy, cohort_month_year
+    GROUP BY cohort_month
 )
-SELECT
-    cohort_year,
-    cohort_month,
-    cohort_mmyyyy,
-    cohort_month_year,
-    num_customers,
-    ROUND(M0 / NULLIF(num_customers,0),2) AS ARPC_M0,
-    ROUND(M1 / NULLIF(num_customers,0),2) AS ARPC_M1,
-    ROUND(M2 / NULLIF(num_customers,0),2) AS ARPC_M2,
-    ROUND(M3 / NULLIF(num_customers,0),2) AS ARPC_M3,
-    ROUND(M4 / NULLIF(num_customers,0),2) AS ARPC_M4,
-    ROUND(M5 / NULLIF(num_customers,0),2) AS ARPC_M5,
-    ROUND(M6 / NULLIF(num_customers,0),2) AS ARPC_M6,
-    ROUND(M7 / NULLIF(num_customers,0),2) AS ARPC_M7,
-    ROUND(M8 / NULLIF(num_customers,0),2) AS ARPC_M8,
-    ROUND(M9 / NULLIF(num_customers,0),2) AS ARPC_M9,
-    ROUND(M10 / NULLIF(num_customers,0),2) AS ARPC_M10,
-    ROUND(M11 / NULLIF(num_customers,0),2) AS ARPC_M11
+SELECT cohort_month,
+       num_customers,
+       ROUND(M0 / NULLIF(num_customers,0),2) AS ARPC_M0,
+       ROUND(M1 / NULLIF(num_customers,0),2) AS ARPC_M1,
+       ROUND(M2 / NULLIF(num_customers,0),2) AS ARPC_M2,
+       ROUND(M3 / NULLIF(num_customers,0),2) AS ARPC_M3,
+       ROUND(M4 / NULLIF(num_customers,0),2) AS ARPC_M4,
+       ROUND(M5 / NULLIF(num_customers,0),2) AS ARPC_M5,
+       ROUND(M6 / NULLIF(num_customers,0),2) AS ARPC_M6,
+       ROUND(M7 / NULLIF(num_customers,0),2) AS ARPC_M7,
+       ROUND(M8 / NULLIF(num_customers,0),2) AS ARPC_M8,
+       ROUND(M9 / NULLIF(num_customers,0),2) AS ARPC_M9,
+       ROUND(M10 / NULLIF(num_customers,0),2) AS ARPC_M10,
+       ROUND(M11 / NULLIF(num_customers,0),2) AS ARPC_M11,
+       ROUND(other / NULLIF(num_customers,0),2) AS ARPC_other
 FROM cohort_summary
-ORDER BY cohort_year, cohort_month;
-
+ORDER BY cohort_month;
 /*
 cohort_year		cohort_month	cohort_mmyyyy	cohort_month_year	num_customers	ARPC_M0		ARPC_M1		ARPC_M2			ARPC_M3			ARPC_M4		ARPC_M5			ARPC_M6			ARPC_M7			ARPC_M8			ARPC_M9			ARPC_M10		ARPC_M11
 2011			1				012011			Jan-2011 		 	131				3253		0			0				0				0			0				0				0				0				0				0				0
