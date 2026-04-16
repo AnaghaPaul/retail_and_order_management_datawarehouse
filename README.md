@@ -440,18 +440,18 @@ Infrequent by nature
 🚀 Strategic Recommendations
 
 1. Maximize First-Purchase Value
-2.Increase Average Order Value (AOV) through:
+2. Increase Average Order Value (AOV) through:
 Product bundling (e.g., bikes + accessories)
 Cross-selling complementary items
 Optimize onboarding and checkout experience
-3. Focus on Acquisition & Virality
+4. Focus on Acquisition & Virality
 Invest in referral programs to:
 Reduce customer acquisition cost (CAC)
 Drive organic growth
 Encourage sharing via:
 Incentives (discounts, credits)
 Social engagement loops
-4. Targeted Retention (Secondary Lever)
+5. Targeted Retention (Secondary Lever)
 
 Retention is not the primary growth driver but can extend value when applied selectively:
 
