@@ -96,7 +96,8 @@ SELECT
     SUM(CASE WHEN month_offset = 8 THEN sales_amount ELSE 0 END) AS M8,
     SUM(CASE WHEN month_offset = 9 THEN sales_amount ELSE 0 END) AS M9,
     SUM(CASE WHEN month_offset = 10 THEN sales_amount ELSE 0 END) AS M10,
-    SUM(CASE WHEN month_offset = 11 THEN sales_amount ELSE 0 END) AS M11
+    SUM(CASE WHEN month_offset = 11 THEN sales_amount ELSE 0 END) AS M11,
+	SUM(CASE WHEN month_offset > 11 THEN sales_amount ELSE 0 END) AS M_other
 	FROM purchase_info
 	GROUP BY cohort_year,cohort_month,cohort_mmyyyy, cohort_month_year
 	ORDER BY cohort_year,cohort_month;
