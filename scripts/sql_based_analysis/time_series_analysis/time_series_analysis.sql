@@ -124,34 +124,6 @@ gold.fact_sales s
 JOIN
 gold.dim_products p
 ON p.product_key=s.product_key
--- YoY profit trend
-WITH gross_profit_info AS (
-SELECT 
-s.order_number,
-s.product_key,
-s.sales_amount,
-s.quantity,
-p.cost,
-o.order_fiscal_year,
-o.order_fiscal_month,
-o.order_fiscal_mmyyyy,
-s.sales_amount - (COALESCE(p.cost, 0) * COALESCE(s.quantity, 0)) AS gross_profit
-FROM 
-gold.dim_products p
-JOIN
-gold.fact_sales s
-ON p.product_key = s.product_key
-JOIN
-gold.dim_order_date o
-ON s.order_date_key = o.order_date_key
-WHERE s.order_date_key != -1)
-SELECT
-order_fiscal_year,
-SUM(gross_profit) AS total_gross_profit
-FROM
-gross_profit_info
-GROUP BY order_fiscal_year
-ORDER BY order_fiscal_year
 
 --MoM profit trend
 WITH gross_profit_info AS (
@@ -181,7 +153,39 @@ FROM
 gross_profit_info
 GROUP BY  order_fiscal_year, order_fiscal_month,order_fiscal_mmyyyy
 ORDER BY order_fiscal_year, order_fiscal_month
+--MoM profit growth rate
+WITH monthly_gross_profit AS
+(
+SELECT
+order_fiscal_year,
+order_fiscal_month,
+order_fiscal_mmyyyy,
+SUM(s.sales_amount - (COALESCE(p.cost, 0) * COALESCE(s.quantity, 0))) AS gross_profit
+FROM
+gold.dim_products AS p
+JOIN
+gold.fact_sales AS s
+ON p.product_key = s.product_key
+JOIN
+gold.dim_order_date AS o
+ON s.order_date_key = o.order_date_key
+WHERE o.order_date_key != -1
+GROUP BY order_fiscal_year,order_fiscal_month,order_fiscal_mmyyyy
 
+), 
+previous_month_profit_info AS (
+SELECT 
+order_fiscal_mmyyyy,
+gross_profit AS current_month_profit,
+LAG(gross_profit) OVER (ORDER BY order_fiscal_year,order_fiscal_month) AS previous_month_profit
+FROM monthly_gross_profit)
+SELECT 
+order_fiscal_mmyyyy,
+CASE 
+WHEN previous_month_profit IS NULL or previous_month_profit = 0 THEN NULL
+ELSE CAST(((current_month_profit-previous_month_profit)*100.00/previous_month_profit)AS DECIMAL(7,2)) END AS profit_growth_rate
+FROM
+previous_month_profit_info
 -- YoY profit trend
 WITH gross_profit_info AS (
 SELECT 
