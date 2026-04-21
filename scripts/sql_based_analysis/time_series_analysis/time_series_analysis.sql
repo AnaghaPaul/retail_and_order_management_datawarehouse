@@ -182,4 +182,33 @@ gross_profit_info
 GROUP BY  order_fiscal_year, order_fiscal_month,order_fiscal_mmyyyy
 ORDER BY order_fiscal_year, order_fiscal_month
 
+-- YoY profit trend
+WITH gross_profit_info AS (
+SELECT 
+s.order_number,
+s.product_key,
+s.sales_amount,
+s.quantity,
+p.cost,
+o.order_fiscal_year,
+o.order_fiscal_month,
+o.order_fiscal_mmyyyy,
+s.sales_amount - (COALESCE(p.cost, 0) * COALESCE(s.quantity, 0)) AS gross_profit
+FROM 
+gold.dim_products p
+JOIN
+gold.fact_sales s
+ON p.product_key = s.product_key
+JOIN
+gold.dim_order_date o
+ON s.order_date_key = o.order_date_key
+WHERE s.order_date_key != -1)
+SELECT
+order_fiscal_year,
+SUM(gross_profit) AS total_gross_profit
+FROM
+gross_profit_info
+GROUP BY  order_fiscal_year
+ORDER BY order_fiscal_year;
+
 
