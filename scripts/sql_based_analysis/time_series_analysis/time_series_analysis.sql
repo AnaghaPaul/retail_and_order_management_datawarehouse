@@ -5,7 +5,7 @@
 -- -----------------------------------------------------------------------------------------------------------------------------------
 -- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>Trend Analysis>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 -- --------------------------------------------------------------------------------------------------------------------------------------
--- Sales Trend
+-- Sales Trend (Revenue)
 -- (MoM)
 SELECT
 o.order_fiscal_year,
@@ -107,4 +107,9 @@ SELECT
     END AS sales_growth_rate
 FROM previous_sales_details
 ORDER BY order_fiscal_year;
+
+-- gross profit
+-- gross profit = Revenue - cost of goods
+-- cost of goods = quantity * cost
+
 
