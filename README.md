@@ -383,6 +383,7 @@ Confirmed clean, analysis-ready dataset
 Eliminated risks of double counting or skewed aggregations
 ### 4.Trend Analysis
 ![Sales Trend Analysis](docs/trend_analysis/sales_trend_analysis.png)
+![Profit Trend Analysis](docs/trend_analysis/profit_trend.png)
 
 ### 4.Cohort Analysis (Customer Lifecycle)
 
