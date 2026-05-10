@@ -897,4 +897,221 @@ cohort_year	cohort_month	cohort_mmyyyy	month_offset	cumulative_ARPC
 2013	12	122013	1	636
 2014	1	012014	0	51
 */
+-- AOV - Average order value for cohorts
+-- Step 1: Aggregate sales to order level
+WITH order_level_sales AS (
+    SELECT 
+        order_number,
+        customer_key,
+        order_date_key,
+        SUM(sales_amount) AS order_revenue
+    FROM gold.fact_sales
+    GROUP BY 
+        order_number,
+        customer_key,
+        order_date_key
+),
 
+-- Step 2: Identify first purchase per customer
+first_purchase_info AS (
+    SELECT 
+        customer_key,
+        MIN(order_date_key) AS first_purchase_date_key
+    FROM order_level_sales
+    GROUP BY customer_key
+),
+
+-- Step 3: Assign customer cohorts
+customer_cohort AS (
+    SELECT
+        f.customer_key,
+        o.order_fiscal_year AS cohort_year,
+        o.order_fiscal_month AS cohort_month,
+        o.order_fiscal_quarter AS cohort_quarter,
+        o.order_fiscal_mmyyyy AS cohort_mmyyyy,
+        o.order_fiscal_month_year AS cohort_month_year
+    FROM first_purchase_info AS f
+    JOIN gold.dim_order_date AS o
+        ON f.first_purchase_date_key = o.order_date_key
+    WHERE f.first_purchase_date_key != -1
+),
+
+-- Step 4: Attach cohort info to all customer orders
+purchase_info AS (
+    SELECT 
+        c.customer_key,
+        c.cohort_year,
+        c.cohort_month,
+        c.cohort_quarter,
+        c.cohort_mmyyyy,
+        c.cohort_month_year,
+
+        s.order_number,
+        s.order_revenue,
+
+        o.order_date,
+        o.order_fiscal_year AS order_year,
+        o.order_fiscal_month AS order_month,
+        o.order_fiscal_quarter AS order_quarter,
+
+        (o.order_fiscal_year - c.cohort_year) * 12 +
+        (o.order_fiscal_month - c.cohort_month) AS month_offset
+
+    FROM customer_cohort AS c
+
+    JOIN order_level_sales AS s
+        ON c.customer_key = s.customer_key
+
+    JOIN gold.dim_order_date AS o
+        ON s.order_date_key = o.order_date_key
+),
+
+-- Step 5: Cohort-level aggregation
+cohort_summary AS (
+    SELECT
+        cohort_year,
+        cohort_month,
+        cohort_mmyyyy,
+        cohort_month_year,
+
+        COUNT(DISTINCT customer_key) AS num_customers,
+
+        COUNT(DISTINCT CASE WHEN month_offset = 0 THEN order_number END) AS num_orders_0,
+        COUNT(DISTINCT CASE WHEN month_offset = 1 THEN order_number END) AS num_orders_1,
+        COUNT(DISTINCT CASE WHEN month_offset = 2 THEN order_number END) AS num_orders_2,
+        COUNT(DISTINCT CASE WHEN month_offset = 3 THEN order_number END) AS num_orders_3,
+        COUNT(DISTINCT CASE WHEN month_offset = 4 THEN order_number END) AS num_orders_4,
+        COUNT(DISTINCT CASE WHEN month_offset = 5 THEN order_number END) AS num_orders_5,
+        COUNT(DISTINCT CASE WHEN month_offset = 6 THEN order_number END) AS num_orders_6,
+        COUNT(DISTINCT CASE WHEN month_offset = 7 THEN order_number END) AS num_orders_7,
+        COUNT(DISTINCT CASE WHEN month_offset = 8 THEN order_number END) AS num_orders_8,
+        COUNT(DISTINCT CASE WHEN month_offset = 9 THEN order_number END) AS num_orders_9,
+        COUNT(DISTINCT CASE WHEN month_offset = 10 THEN order_number END) AS num_orders_10,
+        COUNT(DISTINCT CASE WHEN month_offset = 11 THEN order_number END) AS num_orders_11,
+        COUNT(DISTINCT CASE WHEN month_offset = 12 THEN order_number END) AS num_orders_12,
+		COUNT(DISTINCT CASE WHEN month_offset = 13 THEN order_number END) AS num_orders_13,
+        COUNT(DISTINCT CASE WHEN month_offset = 14 THEN order_number END) AS num_orders_14,
+        COUNT(DISTINCT CASE WHEN month_offset = 15 THEN order_number END) AS num_orders_15,
+        COUNT(DISTINCT CASE WHEN month_offset = 16 THEN order_number END) AS num_orders_16,
+        COUNT(DISTINCT CASE WHEN month_offset = 17 THEN order_number END) AS num_orders_17,
+        COUNT(DISTINCT CASE WHEN month_offset = 18 THEN order_number END) AS num_orders_18,
+        COUNT(DISTINCT CASE WHEN month_offset = 19 THEN order_number END) AS num_orders_19,
+        COUNT(DISTINCT CASE WHEN month_offset = 20 THEN order_number END) AS num_orders_20,
+        COUNT(DISTINCT CASE WHEN month_offset = 21 THEN order_number END) AS num_orders_21,
+        COUNT(DISTINCT CASE WHEN month_offset = 22 THEN order_number END) AS num_orders_22,
+        COUNT(DISTINCT CASE WHEN month_offset = 23 THEN order_number END) AS num_orders_23,
+        COUNT(DISTINCT CASE WHEN month_offset = 24 THEN order_number END) AS num_orders_24,
+		COUNT(DISTINCT CASE WHEN month_offset > 24 THEN order_number END) AS num_orders_other,
+
+        SUM(CASE WHEN month_offset = 0 THEN order_revenue ELSE 0 END) AS M_0,
+        SUM(CASE WHEN month_offset = 1 THEN order_revenue ELSE 0 END) AS M_1,
+        SUM(CASE WHEN month_offset = 2 THEN order_revenue ELSE 0 END) AS M_2,
+        SUM(CASE WHEN month_offset = 3 THEN order_revenue ELSE 0 END) AS M_3,
+        SUM(CASE WHEN month_offset = 4 THEN order_revenue ELSE 0 END) AS M_4,
+        SUM(CASE WHEN month_offset = 5 THEN order_revenue ELSE 0 END) AS M_5,
+        SUM(CASE WHEN month_offset = 6 THEN order_revenue ELSE 0 END) AS M_6,
+        SUM(CASE WHEN month_offset = 7 THEN order_revenue ELSE 0 END) AS M_7,
+        SUM(CASE WHEN month_offset = 8 THEN order_revenue ELSE 0 END) AS M_8,
+        SUM(CASE WHEN month_offset = 9 THEN order_revenue ELSE 0 END) AS M_9,
+        SUM(CASE WHEN month_offset = 10 THEN order_revenue ELSE 0 END) AS M_10,
+        SUM(CASE WHEN month_offset = 11 THEN order_revenue ELSE 0 END) AS M_11,
+        SUM(CASE WHEN month_offset = 12 THEN order_revenue ELSE 0 END) AS M_12,
+		SUM(CASE WHEN month_offset = 13 THEN order_revenue ELSE 0 END) AS M_13,
+        SUM(CASE WHEN month_offset = 14 THEN order_revenue ELSE 0 END) AS M_14,
+        SUM(CASE WHEN month_offset = 15 THEN order_revenue ELSE 0 END) AS M_15,
+        SUM(CASE WHEN month_offset = 16 THEN order_revenue ELSE 0 END) AS M_16,
+        SUM(CASE WHEN month_offset = 17 THEN order_revenue ELSE 0 END) AS M_17,
+        SUM(CASE WHEN month_offset = 18 THEN order_revenue ELSE 0 END) AS M_18,
+        SUM(CASE WHEN month_offset = 19 THEN order_revenue ELSE 0 END) AS M_19,
+        SUM(CASE WHEN month_offset = 20 THEN order_revenue ELSE 0 END) AS M_20,
+        SUM(CASE WHEN month_offset = 21 THEN order_revenue ELSE 0 END) AS M_21,
+        SUM(CASE WHEN month_offset = 22 THEN order_revenue ELSE 0 END) AS M_22,
+        SUM(CASE WHEN month_offset = 23 THEN order_revenue ELSE 0 END) AS M_23,
+        SUM(CASE WHEN month_offset = 24 THEN order_revenue ELSE 0 END) AS M_24,
+        SUM(CASE WHEN month_offset > 24 THEN order_revenue ELSE 0 END) AS M_other
+	
+
+    FROM purchase_info
+
+    GROUP BY
+        cohort_year,
+        cohort_month,
+        cohort_mmyyyy,
+        cohort_month_year
+)
+
+-- Step 6: Final AOV output
+SELECT
+    cohort_month_year,
+    num_customers,
+
+    COALESCE(ROUND(M_0 / NULLIF(num_orders_0, 0), 2),0) AS AOV_M0,
+    COALESCE(ROUND(M_1 / NULLIF(num_orders_1, 0), 2),0) AS AOV_M1,
+    COALESCE(ROUND(M_2 / NULLIF(num_orders_2, 0), 2),0) AS AOV_M2,
+    COALESCE(ROUND(M_3 / NULLIF(num_orders_3, 0), 2),0) AS AOV_M3,
+    COALESCE(ROUND(M_4 / NULLIF(num_orders_4, 0), 2),0) AS AOV_M4,
+    COALESCE(ROUND(M_5 / NULLIF(num_orders_5, 0), 2),0) AS AOV_M5,
+    COALESCE(ROUND(M_6 / NULLIF(num_orders_6, 0), 2),0) AS AOV_M6,
+    COALESCE(ROUND(M_7 / NULLIF(num_orders_7, 0), 2),0) AS AOV_M7,
+    COALESCE(ROUND(M_8 / NULLIF(num_orders_8, 0), 2),0) AS AOV_M8,
+    COALESCE(ROUND(M_9 / NULLIF(num_orders_9, 0), 2),0) AS AOV_M9,
+    COALESCE(ROUND(M_10 / NULLIF(num_orders_10, 0), 2),0) AS AOV_M10,
+    COALESCE(ROUND(M_11 / NULLIF(num_orders_11, 0), 2),0) AS AOV_M11,
+	COALESCE(ROUND(M_12 / NULLIF(num_orders_12, 0), 2),0) AS AOV_M12,
+    COALESCE(ROUND(M_13 / NULLIF(num_orders_13, 0), 2),0) AS AOV_M13,
+    COALESCE(ROUND(M_14 / NULLIF(num_orders_14, 0), 2),0) AS AOV_M14,
+    COALESCE(ROUND(M_15 / NULLIF(num_orders_15, 0), 2),0) AS AOV_M15,
+    COALESCE(ROUND(M_16 / NULLIF(num_orders_16, 0), 2),0) AS AOV_M16,
+    COALESCE(ROUND(M_17 / NULLIF(num_orders_17, 0), 2),0) AS AOV_M17,
+    COALESCE(ROUND(M_18 / NULLIF(num_orders_18, 0), 2),0) AS AOV_M18,
+    COALESCE(ROUND(M_19 / NULLIF(num_orders_19, 0), 2),0) AS AOV_M19,
+    COALESCE(ROUND(M_20/ NULLIF(num_orders_20, 0), 2),0) AS AOV_M20,
+    COALESCE(ROUND(M_21 / NULLIF(num_orders_21, 0), 2),0) AS AOV_M21,
+    COALESCE(ROUND(M_22 / NULLIF(num_orders_22, 0), 2),0) AS AOV_M22,
+    COALESCE(ROUND(M_23 / NULLIF(num_orders_23, 0), 2),0) AS AOV_M23,
+	COALESCE(ROUND(M_24 / NULLIF(num_orders_24,0),2),0) AS AOV_M24,
+    COALESCE(ROUND(M_other / NULLIF(num_orders_other, 0), 2),0) AS AOV_other
+
+FROM cohort_summary
+
+ORDER BY cohort_mmyyyy;
+/*
+cohort_month_year	num_customers	AOV_M0	AOV_M1	AOV_M2	AOV_M3	AOV_M4	AOV_M5	AOV_M6	AOV_M7	AOV_M8	AOV_M9	AOV_M10	AOV_M11	AOV_M12	AOV_M13	AOV_M14	AOV_M15	AOV_M16	AOV_M17	AOV_M18	AOV_M19	AOV_M20	AOV_M21	AOV_M22	AOV_M23	AOV_M24	AOV_other
+Jan-2011  	131	3253	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	2315	2349	1774
+Jan-2012  	229	2005	0	0	0	0	0	0	0	0	0	0	646	1145	1214	1799	1978	1627	1746	1930	2258	1738	1752	1727	1594	0	0
+Jan-2013  	249	1186	57	41	274	173	40	55	422	32	96	195	110	41	0	0	0	0	0	0	0	0	0	0	0	0	0
+Jan-2014  	506	50	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0
+Feb-2011  	139	3229	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	2471	2269	1806	1749
+Feb-2012  	242	1972	0	0	0	0	0	0	0	0	0	0	1149	1493	2021	2038	1902	1585	1590	2078	2146	1250	1498	1300	0	0	0
+Feb-2013  	1091	258	51	54	118	133	53	41	50	52	57	57	55	0	0	0	0	0	0	0	0	0	0	0	0	0	0
+Mar-2011  	168	3228	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	2065	2364	2433	2094	1627
+Mar-2012  	251	1800	0	0	0	0	0	0	0	0	1253	1104	1131	1624	1818	2220	2214	2195	2120	1972	1968	1510	1886	0	0	0	0
+Mar-2013  	1302	290	45	51	179	218	236	53	53	57	51	52	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0
+Apr-2011  	147	3275	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	2375	1797	1003	1651	1898	1810
+Apr-2012  	213	1801	0	0	0	0	0	0	0	1269	999	1625	1316	1263	2041	1559	1764	2284	2108	2100	1646	1194	0	0	0	0	0
+Apr-2013  	1017	366	50	124	268	50	121	45	52	58	51	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0
+May-2011  	163	3168	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	2348	2186	1728	1749	1909	2339	1728
+May-2012  	166	1794	0	0	0	0	0	0	1862	1907	593	1869	1646	1574	1302	1223	2162	2274	2047	1664	1793	0	0	0	0	0	0
+May-2013  	1015	404	51	368	425	333	54	46	51	53	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0
+Jun-2011  	250	3201	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	2255	2075	2246	2008	1558	1633	1472	1492
+Jun-2012  	361	1724	0	0	0	0	0	2044	1589	1763	1875	1789	1619	1594	1677	1793	1848	1848	2062	1541	0	0	0	0	0	0	0
+Jun-2013  	1342	454	42	115	138	650	197	48	55	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0
+Jul-2011  	170	3252	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1803	1647	2254	2136	2145	777	1512	1641	1614
+Jul-2012  	232	1774	0	0	0	0	0	1269	885	1223	1109	1470	1852	1875	2019	2145	1311	2341	1927	0	0	0	0	0	0	0	0
+Jul-2013  	951	334	42	54	51	146	547	60	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0
+Aug-2011  	169	3162	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1828	1906	2149	2440	2054	2215	1798	902	1499
+Aug-2012  	265	1831	0	0	0	1574	1358	1085	1268	1428	1170	1645	1564	2017	1705	1291	1706	1984	0	0	0	0	0	0	0	0	0
+Aug-2013  	970	346	56	69	69	427	70	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0
+Sep-2011  	229	3218	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1999	2287	2154	2315	2182	2277	2277	2401	1966	1214	1614
+Sep-2012  	299	1754	0	0	1562	1167	1232	1335	1708	1225	1451	1399	1532	1985	1590	1455	1619	0	0	0	0	0	0	0	0	0	0
+Sep-2013  	1209	391	107	53	51	51	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0
+Oct-2011  	180	3233	0	0	0	0	0	0	0	0	0	0	0	0	0	1448	1697	1591	2208	2259	2271	2293	2031	2210	1185	932	1476
+Oct-2012  	277	1746	0	2355	2056	2329	1171	1055	852	1660	1759	1262	1593	1888	1311	963	0	0	0	0	0	0	0	0	0	0	0
+Oct-2013  	1012	507	64	59	44	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0
+Nov-2011  	218	3154	0	0	0	0	0	0	0	0	0	0	0	0	0	647	1973	1848	1862	1662	2252	2408	2376	1742	1382	1166	1773
+Nov-2012  	371	1684	1469	2140	2075	1274	1506	1601	1121	1705	1582	1990	1977	1747	1539	0	0	0	0	0	0	0	0	0	0	0	0
+Nov-2013  	1063	645	53	45	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0
+Dec-2011  	235	3148	0	0	0	0	0	0	0	0	0	0	0	0	592	2012	1687	1545	694	795	1799	2225	2204	1728	1186	1723	0
+Dec-2012  	352	1721	1568	1967	1418	1646	1858	1546	1510	1695	2213	2051	2222	1676	0	0	0	0	0	0	0	0	0	0	0	0	0
+Dec-2013  	1285	637	72	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0
+*/
