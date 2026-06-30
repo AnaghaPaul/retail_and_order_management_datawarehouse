@@ -382,6 +382,7 @@ Confirmed clean, analysis-ready dataset
 
 Eliminated risks of double counting or skewed aggregations
 ### 4.Trend Analysis
+Profit = Revenue(f.Sales Amount) - (p.cost*f.quantity) Total Cost
 ![Sales Trend Analysis](docs/trend_analysis/sales_trend_analysis.png)
 ![Profit Trend Analysis](docs/trend_analysis/profit_trend.png)
 
