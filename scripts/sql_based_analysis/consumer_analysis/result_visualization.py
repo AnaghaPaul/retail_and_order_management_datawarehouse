@@ -381,4 +381,125 @@ for i in range(1,5):
         ax.set_title('MoM Gross Profit Growth Trend')
 
 
+sql_query_5 ='''-- Sales Growth Trend
+-- MoM
+WITH monthly_sales AS (
+    SELECT
+        o.order_fiscal_year,
+        o.order_fiscal_month,
+        o.order_fiscal_mmyyyy AS fiscal_mmyyyy,
+        SUM(f.sales_amount) AS total_sales
+    FROM gold.fact_sales AS f
+    JOIN gold.dim_order_date AS o
+        ON f.order_date_key = o.order_date_key
+    WHERE f.order_date_key != -1
+    GROUP BY 
+        o.order_fiscal_year,
+        o.order_fiscal_month,
+        o.order_fiscal_mmyyyy
+),
+previous_sales_details AS (
+    SELECT
+        order_fiscal_year,
+        order_fiscal_month,
+        fiscal_mmyyyy,
+        total_sales AS current_total_sales,
+        LAG(total_sales) OVER (
+            ORDER BY order_fiscal_year, order_fiscal_month
+        ) AS previous_sales
+    FROM monthly_sales
+)
+SELECT
+    order_fiscal_year,
+    order_fiscal_month,
+    fiscal_mmyyyy,
+    current_total_sales,
+    previous_sales,
+    CASE 
+        WHEN previous_sales IS NULL OR previous_sales = 0 THEN NULL
+        ELSE ((current_total_sales - previous_sales) * 100.0 / previous_sales)
+    END AS sales_growth_rate
+FROM previous_sales_details
+ORDER BY order_fiscal_year, order_fiscal_month;'''
+df_5 = pd.read_sql(sql_query_5,conn)
+
+sql_query_6 = '''WITH yearly_sales AS (
+    SELECT
+        o.order_fiscal_year,
+        SUM(f.sales_amount) AS total_sales
+    FROM gold.fact_sales AS f
+    JOIN gold.dim_order_date AS o
+        ON f.order_date_key = o.order_date_key
+    WHERE f.order_date_key != -1
+    GROUP BY o.order_fiscal_year
+),
+previous_sales_details AS (
+    SELECT
+        order_fiscal_year,
+        total_sales AS current_total_sales,
+        LAG(total_sales) OVER (
+            ORDER BY order_fiscal_year
+        ) AS previous_sales
+    FROM yearly_sales
+)
+SELECT
+    order_fiscal_year AS fiscal_year,
+    current_total_sales,
+    previous_sales,
+    CASE 
+        WHEN previous_sales IS NULL OR previous_sales = 0 THEN NULL
+        ELSE CAST(
+            ((current_total_sales - previous_sales) * 100.0 / previous_sales)
+            AS DECIMAL(7,2)
+        )
+    END AS sales_growth_rate
+FROM previous_sales_details
+ORDER BY order_fiscal_year;
+'''
+df_6 = pd.read_sql(sql_query_6,conn)
+
+
+fig=plt.figure(figsize=(15,11))
+fig.subplots_adjust(hspace=0.4,wspace=0.4)
+fig.text(0.5, 0.01, "The 2014 data represents only a single month of observations.\n As a result, both YoY and MoM metrics for 2014 are not fully comparable to prior years and should be interpreted with caution due to the incomplete time coverage.", ha="center", fontsize=10)
+for i in range(1,5):
+    ax=fig.add_subplot(2,2,i)
+    
+    if i == 1:
+        ax.plot(df_6["fiscal_year"],df_6["sales_growth_rate"],marker="o")
+        ax.axhline(0, linestyle="--", color="black")
+        ax.set_title("Year-over-Year Sales Growth Rate")
+        ax.set_xlabel("Fiscal Year")
+        ax.set_xticks(df_6['fiscal_year'])
+        ax.set_ylabel("Growth Rate (%)")
+        ax.tick_params(axis="x", rotation=90)
+    elif i == 2:
+        colors = np.where(df_6["sales_growth_rate"] >= 0, "green", "red")
+        ax.bar(df_6["fiscal_year"],df_6["sales_growth_rate"],color=colors)
+        ax.axhline(0, linestyle="--")
+        ax.set_xticks(df_6['fiscal_year'])
+        ax.set_title("YoY Sales Growth Rate")
+        ax.set_xlabel("Fiscal Year")
+        ax.set_ylabel("Growth Rate (%)")
+        ax.tick_params(axis="x", rotation=90)
+    elif i ==3:
+        ax.plot(df_5["fiscal_mmyyyy"],df_5["sales_growth_rate"],marker="o")
+        ax.axhline(0, linestyle="--", color="black")
+        ax.set_title("Month-over-Month Sales Growth Rate")
+        ax.set_xlabel("Fiscal Month")
+        ax.set_ylabel("Growth Rate (%)")
+        ax.tick_params(axis="x", rotation=90)
+    elif i==4:
+        colors = np.where(df_5["sales_growth_rate"] >= 0, "green", "red")
+        ax.bar(df_5["fiscal_mmyyyy"], df_5["sales_growth_rate"], color=colors)
+        ax.axhline(0, linestyle="--", color="black", linewidth=1)
+        ax.set_title("MoM Sales Growth Rate")
+        ax.set_xlabel("Fiscal Month")
+        ax.set_ylabel("Growth Rate (%)")
+        ax.tick_params(axis="x", rotation=90)
+
+
+
+
+
 
