@@ -408,7 +408,7 @@ Aggregate Metrics Analyzed:
 
 Total revenue per cohort
 
-Average revenue per customer (ARPU)
+Average revenue per customer (ARPC)
 
 Cumulative revenue trends over time
 
@@ -446,7 +446,7 @@ High-consideration purchases
 
 Infrequent by nature.
 
-*Average revenue per customer (ARPU)*
+*Average revenue per customer (ARPC)*
 
 ![ARPC_heatmap](docs/cohort_analysis/ARPC_heatmap.png)
 
