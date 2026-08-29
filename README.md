@@ -426,6 +426,8 @@ Long-term customer value trends
 
 📈 5. Revenue-Based Cohort Trends
 
+*Total Revenue per cohort*
+
 ![Total_Revenue_per_Cohort](docs/cohort_analysis/total_revenue_per_cohort.png)
 
 Cohort analysis shows that the business is heavily front-loaded, with the majority of revenue generated during the first purchase (m0).
@@ -442,34 +444,9 @@ Retail products such as bicycles and sports equipment are:
 
 High-consideration purchases
 
-Infrequent by nature
+Infrequent by nature.
 
-
-🚀 Strategic Recommendations
-
-1. Maximize First-Purchase Value
-2. Increase Average Order Value (AOV) through:
-Product bundling (e.g., bikes + accessories)
-Cross-selling complementary items
-Optimize onboarding and checkout experience
-4. Focus on Acquisition & Virality
-Invest in referral programs to:
-Reduce customer acquisition cost (CAC)
-Drive organic growth
-Encourage sharing via:
-Incentives (discounts, credits)
-Social engagement loops
-5. Targeted Retention (Secondary Lever)
-
-Retention is not the primary growth driver but can extend value when applied selectively:
-
-Focus on:
-
-Accessories and repeat-use products
-
-Seasonal campaigns
-
-Use retention to supplement, not drive, revenue growth
+*Average revenue per customer (ARPU)*
 
 ![ARPC_heatmap](docs/cohort_analysis/ARPC_heatmap.png)
 
