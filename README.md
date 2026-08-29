@@ -471,6 +471,8 @@ Seasonal campaigns
 
 Use retention to supplement, not drive, revenue growth
 
+![ARPC_heatmap](docs/cohort_analysis/ARPC_heatmap.png)
+
 ---
 
 # 📊 Power BI Integration
