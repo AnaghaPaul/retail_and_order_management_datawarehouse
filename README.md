@@ -449,6 +449,7 @@ Infrequent by nature.
 *Average revenue per customer (ARPC)*
 
 ![ARPC_heatmap](docs/cohort_analysis/ARPC_heatmap.png)
+Later cohorts show greater revenue contribution from repeat purchases, while acquisition-month ARPC declines substantially across cohorts.
 
 ---
 
