@@ -400,10 +400,9 @@ Paid Engine — acquiring customers through paid marketing and other externally 
 
 The available warehouse data provides a strong foundation for evaluating customer retention and value, particularly for the Sticky Engine. Cohort analysis is used to understand how customer behavior and revenue evolve after the first purchase.
 
-The Virality Engine cannot be directly measured with the current transactional data because referral source, referral relationships, and sharing/invitation activity are not available. These metrics are identified as future data requirements
+The Virality Engine cannot be directly measured with the current transactional data because referral source, referral relationships, and sharing/invitation activity are not available. These metrics are identified as future data required.
 
-The current dataset allows us to analyze what happens to customers after acquisition, but it does not contain enough information to determine how efficiently those customers were acquired.
-
+The paid Engine -The current dataset allows us to analyze what happens to customers after acquisition, but it does not contain enough information to determine how efficiently those customers were acquired.
 
 ### 5 Sticky Engine — Retention & Customer Value
 The Sticky Engine represents the business's ability to keep customers engaged and generate additional value from existing customers.
