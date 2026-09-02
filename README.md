@@ -390,7 +390,27 @@ Both gross profit and revenue exhibit a clear seasonal pattern, with performance
 
 ![Profit Loss Trend](docs/trend_analysis/profit_loss_chart.png)
 
-### 4.Cohort Analysis (Customer Lifecycle)
+### 4. Growth Engine Analysis
+
+The business can be viewed through three complementary growth engines:
+
+Sticky Engine — retaining existing customers and increasing their lifetime value
+Virality Engine — acquiring new customers through referrals, sharing, and organic customer-driven growth
+Paid Engine — acquiring customers through paid marketing and other externally funded acquisition channels
+
+The available warehouse data provides a strong foundation for evaluating customer retention and value, particularly for the Sticky Engine. Cohort analysis is used to understand how customer behavior and revenue evolve after the first purchase.
+
+The Virality Engine cannot be directly measured with the current transactional data because referral source, referral relationships, and sharing/invitation activity are not available. These metrics are identified as future data requirements
+
+The current dataset allows us to analyze what happens to customers after acquisition, but it does not contain enough information to determine how efficiently those customers were acquired.
+
+
+### 5 Sticky Engine — Retention & Customer Value
+The Sticky Engine represents the business's ability to keep customers engaged and generate additional value from existing customers.
+
+The current cohort analysis provides an initial view of this engine by examining revenue generated after the first purchase.
+
+#### Cohort Analysis (Customer Lifecycle)
 
 A cohort-based approach was implemented to analyze how customer value evolves over time. Many important
 behaviors take weeks, months, or years to occur or evolve, and cohort analysis is
