@@ -298,114 +298,8 @@ cohort_year		cohort_month	cohort_mmyyyy	cohort_month_year	num_customers	ARPC_M0	
 2013			12				122013			Dec-2013  			1285			645			1			0				0				0			0				0				0				0				0				0   			0
 2014			1				012014			Jan-2014  			506				51			0			0				0				0			0				0				0				0				0				0				0
 */
-WITH order_level_sales AS (
-    -- Step 1: Aggregate revenue at order level to avoid double-counting line items
-    SELECT 
-        order_number,
-        customer_key,
-        order_date_key,
-        SUM(sales_amount) AS order_revenue
-    FROM gold.fact_sales
-    GROUP BY order_number, customer_key, order_date_key
-),
-first_purchase_info AS (
-    -- Step 2: Identify first purchase per customer (cohort assignment)
-    SELECT 
-        customer_key,
-        MIN(order_date_key) AS first_purchase_date_key
-    FROM order_level_sales
-    GROUP BY customer_key
-),
-customer_cohort AS (
-    -- Step 3: Assign cohort based on first purchase month
-    SELECT 
-        f.customer_key,
-        o.order_fiscal_year AS cohort_year,
-        o.order_fiscal_month AS cohort_month,
-        o.order_fiscal_quarter AS cohort_quarter,
-        o.order_fiscal_mmyyyy AS cohort_mmyyyy,
-        o.order_fiscal_month_year AS cohort_month_year
-    FROM first_purchase_info AS f
-    JOIN gold.dim_order_date AS o
-      ON f.first_purchase_date_key = o.order_date_key
-    WHERE f.first_purchase_date_key != -1
-),
-purchase_info AS (
-    -- Step 4: Join cohort info with order-level revenue and calculate month offset
-    SELECT 
-        c.customer_key,
-        c.cohort_year,
-        c.cohort_month,
-        c.cohort_quarter,
-        c.cohort_mmyyyy,
-        c.cohort_month_year,
-        s.order_number,
-        s.order_revenue,
-        o.order_date AS order_date,
-        o.order_fiscal_year AS order_year,
-        o.order_fiscal_month AS order_month,
-        o.order_fiscal_quarter AS order_quarter,
-        (o.order_fiscal_year - c.cohort_year) * 12 + (o.order_fiscal_month - c.cohort_month) AS month_offset
-    FROM customer_cohort AS c
-    JOIN order_level_sales s
-      ON c.customer_key = s.customer_key
-    JOIN gold.dim_order_date AS o
-      ON s.order_date_key = o.order_date_key
-),
-cohort_summary AS (
-    -- Step 5: Aggregate revenue by cohort and month offset
-    SELECT cohort_month,
-           COUNT(DISTINCT customer_key) AS num_customers,
-           SUM(CASE WHEN month_offset = 0 THEN order_revenue ELSE 0 END) AS M0,
-           SUM(CASE WHEN month_offset = 1 THEN order_revenue ELSE 0 END) AS M1,
-           SUM(CASE WHEN month_offset = 2 THEN order_revenue ELSE 0 END) AS M2,
-           SUM(CASE WHEN month_offset = 3 THEN order_revenue ELSE 0 END) AS M3,
-           SUM(CASE WHEN month_offset = 4 THEN order_revenue ELSE 0 END) AS M4,
-           SUM(CASE WHEN month_offset = 5 THEN order_revenue ELSE 0 END) AS M5,
-           SUM(CASE WHEN month_offset = 6 THEN order_revenue ELSE 0 END) AS M6,
-           SUM(CASE WHEN month_offset = 7 THEN order_revenue ELSE 0 END) AS M7,
-           SUM(CASE WHEN month_offset = 8 THEN order_revenue ELSE 0 END) AS M8,
-           SUM(CASE WHEN month_offset = 9 THEN order_revenue ELSE 0 END) AS M9,
-           SUM(CASE WHEN month_offset = 10 THEN order_revenue ELSE 0 END) AS M10,
-           SUM(CASE WHEN month_offset = 11 THEN order_revenue ELSE 0 END) AS M11,
-           SUM(CASE WHEN month_offset > 11 THEN order_revenue ELSE 0 END) AS other
-    FROM purchase_info
-    GROUP BY cohort_month
-)
--- Step 6: Calculate ARPC per cohort
-SELECT cohort_month,
-       num_customers,
-       ROUND(M0 / NULLIF(num_customers,0),2) AS ARPC_M0,
-       ROUND(M1 / NULLIF(num_customers,0),2) AS ARPC_M1,
-       ROUND(M2 / NULLIF(num_customers,0),2) AS ARPC_M2,
-       ROUND(M3 / NULLIF(num_customers,0),2) AS ARPC_M3,
-       ROUND(M4 / NULLIF(num_customers,0),2) AS ARPC_M4,
-       ROUND(M5 / NULLIF(num_customers,0),2) AS ARPC_M5,
-       ROUND(M6 / NULLIF(num_customers,0),2) AS ARPC_M6,
-       ROUND(M7 / NULLIF(num_customers,0),2) AS ARPC_M7,
-       ROUND(M8 / NULLIF(num_customers,0),2) AS ARPC_M8,
-       ROUND(M9 / NULLIF(num_customers,0),2) AS ARPC_M9,
-       ROUND(M10 / NULLIF(num_customers,0),2) AS ARPC_M10,
-       ROUND(M11 / NULLIF(num_customers,0),2) AS ARPC_M11,
-       ROUND(other / NULLIF(num_customers,0),2) AS ARPC_other
-FROM cohort_summary
-ORDER BY cohort_month;
+-- ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-/*
-cohort_month	num_customers	ARPC_M0		ARPC_M1		ARPC_M2		ARPC_M3		ARPC_M4		ARPC_M5		ARPC_M6		ARPC_M7		ARPC_M8		ARPC_M9		ARPC_M10	ARPC_M11	ARPC_other
-1				1115			1082			0			0			4			2			0			0			4			0			1			4			2		688
-2				1472			829				3			2			5			7			3			1			3			2			2			3			6		481
-3				1721			803				1			1			5			6			6			1			1			1			3			7			4		455
-4				1377			900				1			3			6			1			3			1			0			2			4			4			15		489
-5				1344			915				1			6			9			8			0			1			4			5			0			12			15		436
-6				1953			1044			0			2			3			14			3			4			9			6			20			11			22		496
-7				1353			953				0			1			1			2			15			17			5			10			4			27			46		473
-8				1404			969				0			1			1			12			20			12			19			19			14			48			34		391
-9				1737			1002			1			0			3			10			12			18			16			10			44			17			57		455
-10				1469			1077			0			2			16			11			11			5			4			55			17			14			74		375
-11				1652			1213			2			9			16			10			7			26			33			41			13			54			95		390
-12				1872			1164			8			9			15			7			16			20			30			19			35			32			73		302
-*/
 -- Step 1: Aggregate sales to order level
 WITH order_level_sales AS (
     SELECT 
@@ -1114,4 +1008,113 @@ Nov-2013  	1063	645	53	45	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0
 Dec-2011  	235	3148	0	0	0	0	0	0	0	0	0	0	0	0	592	2012	1687	1545	694	795	1799	2225	2204	1728	1186	1723	0
 Dec-2012  	352	1721	1568	1967	1418	1646	1858	1546	1510	1695	2213	2051	2222	1676	0	0	0	0	0	0	0	0	0	0	0	0	0
 Dec-2013  	1285	637	72	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0
+*/
+
+WITH order_level_sales AS (
+    -- Step 1: Aggregate revenue at order level to avoid double-counting line items
+    SELECT 
+        order_number,
+        customer_key,
+        order_date_key,
+        SUM(sales_amount) AS order_revenue
+    FROM gold.fact_sales
+    GROUP BY order_number, customer_key, order_date_key
+),
+first_purchase_info AS (
+    -- Step 2: Identify first purchase per customer (cohort assignment)
+    SELECT 
+        customer_key,
+        MIN(order_date_key) AS first_purchase_date_key
+    FROM order_level_sales
+    GROUP BY customer_key
+),
+customer_cohort AS (
+    -- Step 3: Assign cohort based on first purchase month
+    SELECT 
+        f.customer_key,
+        o.order_fiscal_year AS cohort_year,
+        o.order_fiscal_month AS cohort_month,
+        o.order_fiscal_quarter AS cohort_quarter,
+        o.order_fiscal_mmyyyy AS cohort_mmyyyy,
+        o.order_fiscal_month_year AS cohort_month_year
+    FROM first_purchase_info AS f
+    JOIN gold.dim_order_date AS o
+      ON f.first_purchase_date_key = o.order_date_key
+    WHERE f.first_purchase_date_key != -1
+),
+purchase_info AS (
+    -- Step 4: Join cohort info with order-level revenue and calculate month offset
+    SELECT 
+        c.customer_key,
+        c.cohort_year,
+        c.cohort_month,
+        c.cohort_quarter,
+        c.cohort_mmyyyy,
+        c.cohort_month_year,
+        s.order_number,
+        s.order_revenue,
+        o.order_date AS order_date,
+        o.order_fiscal_year AS order_year,
+        o.order_fiscal_month AS order_month,
+        o.order_fiscal_quarter AS order_quarter,
+        (o.order_fiscal_year - c.cohort_year) * 12 + (o.order_fiscal_month - c.cohort_month) AS month_offset
+    FROM customer_cohort AS c
+    JOIN order_level_sales s
+      ON c.customer_key = s.customer_key
+    JOIN gold.dim_order_date AS o
+      ON s.order_date_key = o.order_date_key
+),
+cohort_summary AS (
+    -- Step 5: Aggregate revenue by cohort and month offset
+    SELECT cohort_month,
+           COUNT(DISTINCT customer_key) AS num_customers,
+           SUM(CASE WHEN month_offset = 0 THEN order_revenue ELSE 0 END) AS M0,
+           SUM(CASE WHEN month_offset = 1 THEN order_revenue ELSE 0 END) AS M1,
+           SUM(CASE WHEN month_offset = 2 THEN order_revenue ELSE 0 END) AS M2,
+           SUM(CASE WHEN month_offset = 3 THEN order_revenue ELSE 0 END) AS M3,
+           SUM(CASE WHEN month_offset = 4 THEN order_revenue ELSE 0 END) AS M4,
+           SUM(CASE WHEN month_offset = 5 THEN order_revenue ELSE 0 END) AS M5,
+           SUM(CASE WHEN month_offset = 6 THEN order_revenue ELSE 0 END) AS M6,
+           SUM(CASE WHEN month_offset = 7 THEN order_revenue ELSE 0 END) AS M7,
+           SUM(CASE WHEN month_offset = 8 THEN order_revenue ELSE 0 END) AS M8,
+           SUM(CASE WHEN month_offset = 9 THEN order_revenue ELSE 0 END) AS M9,
+           SUM(CASE WHEN month_offset = 10 THEN order_revenue ELSE 0 END) AS M10,
+           SUM(CASE WHEN month_offset = 11 THEN order_revenue ELSE 0 END) AS M11,
+           SUM(CASE WHEN month_offset > 11 THEN order_revenue ELSE 0 END) AS other
+    FROM purchase_info
+    GROUP BY cohort_month
+)
+-- Step 6: Calculate ARPC per cohort
+SELECT cohort_month,
+       num_customers,
+       ROUND(M0 / NULLIF(num_customers,0),2) AS ARPC_M0,
+       ROUND(M1 / NULLIF(num_customers,0),2) AS ARPC_M1,
+       ROUND(M2 / NULLIF(num_customers,0),2) AS ARPC_M2,
+       ROUND(M3 / NULLIF(num_customers,0),2) AS ARPC_M3,
+       ROUND(M4 / NULLIF(num_customers,0),2) AS ARPC_M4,
+       ROUND(M5 / NULLIF(num_customers,0),2) AS ARPC_M5,
+       ROUND(M6 / NULLIF(num_customers,0),2) AS ARPC_M6,
+       ROUND(M7 / NULLIF(num_customers,0),2) AS ARPC_M7,
+       ROUND(M8 / NULLIF(num_customers,0),2) AS ARPC_M8,
+       ROUND(M9 / NULLIF(num_customers,0),2) AS ARPC_M9,
+       ROUND(M10 / NULLIF(num_customers,0),2) AS ARPC_M10,
+       ROUND(M11 / NULLIF(num_customers,0),2) AS ARPC_M11,
+       ROUND(other / NULLIF(num_customers,0),2) AS ARPC_other
+FROM cohort_summary
+ORDER BY cohort_month;
+
+/*
+cohort_month	num_customers	ARPC_M0		ARPC_M1		ARPC_M2		ARPC_M3		ARPC_M4		ARPC_M5		ARPC_M6		ARPC_M7		ARPC_M8		ARPC_M9		ARPC_M10	ARPC_M11	ARPC_other
+1				1115			1082			0			0			4			2			0			0			4			0			1			4			2		688
+2				1472			829				3			2			5			7			3			1			3			2			2			3			6		481
+3				1721			803				1			1			5			6			6			1			1			1			3			7			4		455
+4				1377			900				1			3			6			1			3			1			0			2			4			4			15		489
+5				1344			915				1			6			9			8			0			1			4			5			0			12			15		436
+6				1953			1044			0			2			3			14			3			4			9			6			20			11			22		496
+7				1353			953				0			1			1			2			15			17			5			10			4			27			46		473
+8				1404			969				0			1			1			12			20			12			19			19			14			48			34		391
+9				1737			1002			1			0			3			10			12			18			16			10			44			17			57		455
+10				1469			1077			0			2			16			11			11			5			4			55			17			14			74		375
+11				1652			1213			2			9			16			10			7			26			33			41			13			54			95		390
+12				1872			1164			8			9			15			7			16			20			30			19			35			32			73		302
 */
