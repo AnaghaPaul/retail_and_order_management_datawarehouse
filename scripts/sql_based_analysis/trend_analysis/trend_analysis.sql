@@ -49,8 +49,7 @@ SELECT *
 FROM product_sales
 
 -- -------------------------------------------------------------------------------
-
--- All time sales
+-- Quantity sold per category ( All time sales)
 WITH product_sales AS
 (
 SELECT
@@ -82,5 +81,49 @@ SELECT
 category,
 SUM(quantity) AS quantity_sold
 FROM product_sales
-GROUP BY category;
+GROUP BY category
+ORDER BY quantity_sold DESC;
+-- --------------------------------
+/*
+category	quantity_sold
+Accessories	36096
+Bikes	    15203
+Clothing	9105
+*/
+-- --------------------------------
+-- Revenue Generated per Category (All time sales)
+WITH product_sales AS
+(
+SELECT
+s.order_number,
+s.product_key, 
+s.customer_key, 
+s.order_date_key,
+s.sales_amount,
+s.quantity,
+p.product_name, 
+p.category,
+p.subcategory,
+p.product_line,
+t.order_date,
+t.order_day_name,
+t.order_week_of_month,
+t.order_month,
+t.order_year
+FROM gold.dim_products AS p
+INNER JOIN
+gold.fact_sales AS s
+ON p.product_key = s.product_key
+INNER JOIN
+gold.dim_order_date AS t
+ON  s.order_date_key = t.order_date_key
+WHERE s.order_date_key != -1
+)
+SELECT 
+category,
+SUM(sales_amount) AS revenue_generated
+FROM product_sales
+GROUP BY category
+ORDER BY revenue_generated DESC;
+-- ---------------------------------------
 
