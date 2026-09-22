@@ -126,4 +126,11 @@ FROM product_sales
 GROUP BY category
 ORDER BY revenue_generated DESC;
 -- ---------------------------------------
+/*
+category	revenue_generated
+Bikes	    28311657
+Accessories	699909
+Clothing	339692
+*/
+-- ---------------------------------------
 
