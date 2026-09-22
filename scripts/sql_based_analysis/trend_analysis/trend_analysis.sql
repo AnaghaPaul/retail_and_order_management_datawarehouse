@@ -2,28 +2,25 @@
 ===============================================================================
 Trend Analysis
 ===============================================================================
+This analysis uses the Gold-layer dimensional model to evaluate historical
+sales performance and identify trends across product categories.
 
-Purpose:
-    Analyze historical sales trends across product categories using the Gold
-    layer of the data warehouse.
+The analysis combines:
+    - gold.fact_sales       : sales transactions and measures
+    - gold.dim_products     : product and category attributes
+    - gold.dim_order_date   : calendar and time attributes
 
-Approach:
-    - Combine sales transactions from fact_sales with product attributes from
-      dim_products and calendar attributes from dim_order_date.
-    - Create a reusable analytical dataset using a CTE.
-    - Exclude records associated with the unknown date key (-1).
-    - Analyze revenue and quantity trends across categories and time periods.
-    - Use year-over-year comparisons to identify changes in sales performance.
+A reusable CTE is created to provide a consistent analytical dataset for
+revenue and quantity analysis across different time periods.
 
-Key Business Questions:
-    - How has revenue changed over time?
-    - Which product categories are driving sales growth or decline?
-    - How has sales volume changed across categories?
-    - Are changes in revenue accompanied by changes in quantity sold?
+The analysis focuses on:
+    1. Revenue trends by product category
+    2. Quantity sold trends by product category
+    3. Year-over-year changes in category revenue
+    4. Identification of changes in product-category performance
 
-Output:
-    The resulting analysis supports identification of historical sales patterns,
-    category performance, and changes in customer demand over time.
+Unknown-date records are excluded using the warehouse's designated
+unknown-date key (-1).
 ===============================================================================
 */
 
@@ -52,4 +49,38 @@ SELECT *
 FROM product_sales
 
 -- -------------------------------------------------------------------------------
+
+-- All time sales
+WITH product_sales AS
+(
+SELECT
+s.order_number,
+s.product_key, 
+s.customer_key, 
+s.order_date_key,
+s.sales_amount,
+s.quantity,
+p.product_name, 
+p.category,
+p.subcategory,
+p.product_line,
+t.order_date,
+t.order_day_name,
+t.order_week_of_month,
+t.order_month,
+t.order_year
+FROM gold.dim_products AS p
+INNER JOIN
+gold.fact_sales AS s
+ON p.product_key = s.product_key
+INNER JOIN
+gold.dim_order_date AS t
+ON  s.order_date_key = t.order_date_key
+WHERE s.order_date_key != -1
+)
+SELECT 
+category,
+SUM(quantity) AS quantity_sold
+FROM product_sales
+GROUP BY category;
 
